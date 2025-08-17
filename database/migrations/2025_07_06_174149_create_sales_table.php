@@ -22,7 +22,7 @@ return new class extends Migration
             $table->decimal('changeAmount', 10, 2)->nullable();
             $table->string('original_sale_id')->nullable();
             $table->string('return_reason')->nullable();
-            $table->enum('status', ['completed', 'refunded', 'partially_refunded'])->default('completed');
+            $table->enum('status', ['completed', 'refunded', 'returned'])->default('completed');
             $table->boolean('is_return')->default(false);
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->timestamps();
