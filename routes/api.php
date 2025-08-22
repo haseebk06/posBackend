@@ -1,13 +1,13 @@
 <?php
 
 use App\Http\Controllers\BarcodePrintController;
+use App\Http\Controllers\MenuController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\SaleController;
 use App\Http\Controllers\ShiftController;
 use App\Http\Controllers\StockController;
 use App\Http\Controllers\StoreInformationController;
 use App\Http\Controllers\UserController;
-
 
 //user
 Route::prefix('/user')->group(function () {
@@ -68,6 +68,22 @@ Route::prefix('/counter')->group(function () {
     Route::put('/close/{id}', [ShiftController::class, 'closeCounter']);
     Route::get('/reports', [ShiftController::class, 'dailyReports']);
     Route::get('/reports/generate', [ShiftController::class, 'generateReportManually']);
+});
+
+Route::prefix('/menu')->group(function () {
+    // Categories
+    Route::post('/category', [MenuController::class, 'storeCategory']);
+    Route::get('/categories', [MenuController::class, 'getCategories']);
+
+    // Items
+    Route::post('/item', [MenuController::class, 'storeItem']);
+    Route::get('/items/{categoryId}', [MenuController::class, 'getItemsByCategory']);
+
+    // Variants
+    Route::post('/item/{itemId}/variant', [MenuController::class, 'storeVariant']);
+
+    // Full menu
+    Route::get('/all', [MenuController::class, 'getFullMenu']);
 });
 
 Route::prefix('/print')->group(function () {
