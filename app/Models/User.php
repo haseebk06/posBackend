@@ -63,4 +63,14 @@ class User extends Authenticatable
     {
         return $this->hasMany(HoldCart::class);
     }
+
+    public function shifts()
+    {
+        return $this->hasMany(Shift::class);
+    }
+
+    public function counters()
+    {
+        return $this->hasMany(Counter::class);
+    }
 }

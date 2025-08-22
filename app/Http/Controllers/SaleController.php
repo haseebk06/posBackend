@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\HoldCart;
 use App\Models\Sale;
+use App\Models\Shift;
 use App\Models\SoldItems;
 use App\Models\Stock;
 use Illuminate\Http\Request;
@@ -23,6 +24,64 @@ class SaleController extends Controller
             'status' => true,
             'message' => 'Sales fetched successfully',
             'data' => $sales,
+        ], 200);
+    }
+
+    public function getCurrentShiftSales($id, $userId)
+    {
+        $sales = Sale::where('user_id', $userId)
+            ->where('shift_id', $id)
+            ->whereDate('created_at', today()) // only today
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $totalSales = Sale::where('user_id', $userId)
+            ->where('shift_id', $id)
+            ->whereDate('created_at', today()) // only today
+            ->sum('finalTotal');
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Sales fetched successfully',
+            'data' => $sales,
+            'total_sales' => $totalSales,
+        ], 200);
+    }
+
+    public function getPreviousShiftSales($counterId, $userId)
+    {
+        // get the most recent closed shift **today** for this counter
+        $previousShift = Shift::where('status', 'closed')
+            ->where('counter_id', $counterId)
+            ->whereDate('start_time', today()) // only today
+            ->orderBy('end_time', 'desc')
+            ->first();
+
+        if (!$previousShift) {
+            return response()->json([
+                'status' => false,
+                'message' => 'No previous shift found for this counter today',
+                'shift_id' => null,
+                'data' => [],
+                'total_sales' => 0,
+            ], 200);
+        }
+
+        $sales = Sale::where('shift_id', $previousShift->id)
+            ->whereDate('created_at', today())
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $totalSales = Sale::where('shift_id', $previousShift->id)
+            ->whereDate('created_at', today())
+            ->sum('finalTotal');
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Previous shift sales fetched successfully',
+            'shift_id' => $previousShift->id,
+            'data' => $sales,
+            'total_sales' => $totalSales,
         ], 200);
     }
 
@@ -110,6 +169,7 @@ class SaleController extends Controller
 
         $sale = new Sale();
         $sale->user_id = $request->user()->id;
+        $sale->shift_id = $request["shift_id"];
         $sale->total = $request["total"];
         $sale->tax = $request["tax"];
         $sale->discount = $request["discount"];
@@ -314,7 +374,7 @@ class SaleController extends Controller
         $sale->save();
     }
 
-    public function returnEntireSale(Request $request)
+    public function returnEntireSale(Request $request, $id)
     {
         $validated = $request->validate([
             'saleId' => 'required|exists:sales,id',
@@ -352,6 +412,7 @@ class SaleController extends Controller
                 'original_sale_id' => $originalSale->id,
                 'return_reason' => $validated['reason'],
                 'user_id' => $request->user()->id,
+                'shift_id' => $id,
                 'is_return' => true,
                 'status' => 'refunded'
             ]);

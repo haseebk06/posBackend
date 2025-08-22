@@ -25,6 +25,7 @@ return new class extends Migration
             $table->enum('status', ['completed', 'refunded', 'returned'])->default('completed');
             $table->boolean('is_return')->default(false);
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('shift_id')->constrained('shifts')->cascadeOnDelete();
             $table->timestamps();
         });
     }

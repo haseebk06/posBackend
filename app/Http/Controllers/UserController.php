@@ -138,8 +138,22 @@ class UserController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'oldPassword' => 'required|string|min:8|max:40',
-            'password' => 'required|string|min:8|max:40|regex:/^(?=.*[0-9])(?=.*[\W_]).*$/',
+            'password' => [
+                'required',
+                'string',
+                'min:8',
+                'max:40',
+                'regex:/^(?=.*[0-9])(?=.*[\W_]).*$/'
+            ],
             'confirmPassword' => 'required|same:password',
+        ], [
+            'oldPassword.required' => 'Old password is required.',
+            'oldPassword.min' => 'Old password must be at least 8 characters.',
+            'password.required' => 'New password is required.',
+            'password.min' => 'New password must be at least 8 characters.',
+            'password.regex' => 'New password must contain at least 1 number and 1 special character.',
+            'confirmPassword.required' => 'Confirm password is required.',
+            'confirmPassword.same' => 'Confirm password must match new password.',
         ]);
 
         if ($validator->fails()) {

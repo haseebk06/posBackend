@@ -21,6 +21,7 @@ class Sale extends Model
         'original_sale_id',
         'return_reason',
         'user_id',
+        'shift_id',
         'is_return',
         'status',
     ];
@@ -34,6 +35,12 @@ class Sale extends Model
     {
         return $this->hasMany(SoldItems::class);
     }
+
+    public function shift()
+    {
+        return $this->belongsTo(Shift::class);
+    }
+
     public function returnedSales()
     {
         return $this->hasMany(Sale::class, 'original_sale_id');
