@@ -33,19 +33,20 @@ class SaleController extends Controller
     {
         $sales = Sale::where('user_id', $userId)
             ->where('shift_id', $id)
-            ->whereDate('created_at', today())
             ->orderBy('created_at', 'desc')
             ->get();
 
         $totalSales = Sale::where('user_id', $userId)
             ->where('shift_id', $id)
-            ->whereDate('created_at', today())
             ->sum('finalTotal');
 
         $totalGrossSales = Sale::where('user_id', $userId)
             ->where('shift_id', $id)
-            ->whereDate('created_at', today())
             ->sum('total');
+
+        $totalDiscount = Sale::where('user_id', $userId)
+            ->where('shift_id', $id)
+            ->sum('discount');
 
         return response()->json([
             'status' => true,
@@ -53,6 +54,7 @@ class SaleController extends Controller
             'data' => $sales,
             'total_sales' => $totalSales,
             'gross_sales' => $totalGrossSales,
+            'total_discount' => $totalDiscount,
         ], 200);
     }
     
@@ -60,18 +62,15 @@ class SaleController extends Controller
     {
         $returns = Retrun::where('user_id', $userId)
             ->where('shift_id', $id)
-            ->whereDate('created_at', today())
             ->orderBy('created_at', 'desc')
             ->get();
 
         $totalRetruns = Retrun::where('user_id', $userId)
             ->where('shift_id', $id)
-            ->whereDate('created_at', today())
             ->sum('finalTotal');
 
         $totalGrossRetruns = Retrun::where('user_id', $userId)
             ->where('shift_id', $id)
-            ->whereDate('created_at', today())
             ->sum('total');
 
         return response()->json([
@@ -87,7 +86,6 @@ class SaleController extends Controller
     {
         $previousShift = Shift::where('status', 'closed')
             ->where('counter_id', $counterId)
-            ->whereDate('start_time', today())
             ->orderBy('end_time', 'desc')
             ->first();
 
@@ -102,17 +100,17 @@ class SaleController extends Controller
         }
 
         $sales = Sale::where('shift_id', $previousShift->id)
-            ->whereDate('created_at', today())
             ->orderBy('created_at', 'desc')
             ->get();
 
         $totalSales = Sale::where('shift_id', $previousShift->id)
-            ->whereDate('created_at', today())
             ->sum('finalTotal');
 
         $totalGrossSales = Sale::where('shift_id', $previousShift->id)
-            ->whereDate('created_at', today())
             ->sum('total');
+
+        $totalDiscount = Sale::where('shift_id', $previousShift->id)
+            ->sum('discount');
 
         return response()->json([
             'status' => true,
@@ -121,6 +119,7 @@ class SaleController extends Controller
             'data' => $sales,
             'total_sales' => $totalSales,
             'gross_sales' => $totalGrossSales,
+            'total_discount' => $totalDiscount,
         ], 200);
     }
 
@@ -128,7 +127,6 @@ class SaleController extends Controller
     {
         $previousShift = Shift::where('status', 'closed')
             ->where('counter_id', $counterId)
-            ->whereDate('start_time', today())
             ->orderBy('end_time', 'desc')
             ->first();
 
@@ -143,16 +141,13 @@ class SaleController extends Controller
         }
 
         $returns = Retrun::where('shift_id', $previousShift->id)
-            ->whereDate('created_at', today())
             ->orderBy('created_at', 'desc')
             ->get();
 
         $totalRetruns = Retrun::where('shift_id', $previousShift->id)
-            ->whereDate('created_at', today())
             ->sum('finalTotal');
 
         $totalGrossRetruns = Retrun::where('shift_id', $previousShift->id)
-            ->whereDate('created_at', today())
             ->sum('total');
 
         return response()->json([
@@ -162,6 +157,58 @@ class SaleController extends Controller
             'data' => $returns,
             'total_retruns' => $totalRetruns,
             'gross_retruns' => $totalGrossRetruns,
+        ], 200);
+    }
+
+    public function getCurrentShiftItemsSold($id, $userId)
+    {
+        $items = SoldItems::query()
+            ->join('sales', 'sold_items.sale_id', '=', 'sales.id')
+            ->where('sales.user_id', $userId)
+            ->where('sales.shift_id', $id)
+            ->where('sold_items.is_return', false)
+            ->selectRaw('sold_items.name, sold_items.category, sold_items.unit, SUM(sold_items.quantity) as quantity, SUM(sold_items.subtotal) as total_amount')
+            ->groupBy('sold_items.name', 'sold_items.category', 'sold_items.unit')
+            ->orderByDesc('quantity')
+            ->get();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Current shift items fetched successfully',
+            'data' => $items,
+        ], 200);
+    }
+
+    public function getPreviousShiftItemsSold($counterId, $userId)
+    {
+        $previousShift = Shift::where('status', 'closed')
+            ->where('counter_id', $counterId)
+            ->orderBy('end_time', 'desc')
+            ->first();
+
+        if (!$previousShift) {
+            return response()->json([
+                'status' => false,
+                'message' => 'No previous shift found for this counter',
+                'shift_id' => null,
+                'data' => [],
+            ], 200);
+        }
+
+        $items = SoldItems::query()
+            ->join('sales', 'sold_items.sale_id', '=', 'sales.id')
+            ->where('sales.shift_id', $previousShift->id)
+            ->where('sold_items.is_return', false)
+            ->selectRaw('sold_items.name, sold_items.category, sold_items.unit, SUM(sold_items.quantity) as quantity, SUM(sold_items.subtotal) as total_amount')
+            ->groupBy('sold_items.name', 'sold_items.category', 'sold_items.unit')
+            ->orderByDesc('quantity')
+            ->get();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Previous shift items fetched successfully',
+            'shift_id' => $previousShift->id,
+            'data' => $items,
         ], 200);
     }
 

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Counter;
 use App\Models\Shift;
 use App\Models\DailyReport;
+use App\Models\Sale;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Artisan;
@@ -66,7 +67,11 @@ class ShiftController extends Controller
             'status'         => 'closed',
         ]);
 
-        return response()->json($shift);
+        return response()->json([
+            'status' => true,
+            'message' => 'Shift closed successfully.',
+            'data' => $shift,
+        ]);
     }
 
     public function currentShift($id)
@@ -100,16 +105,11 @@ class ShiftController extends Controller
 
     public function allShifts()
     {
-        $today = today();
-
-        // 1. Counter wise totals
         $totals = Shift::with('counter')
-            ->whereDate('start_time', $today)
             ->selectRaw('counter_id, SUM(closing_cash) as total_closing_cash, SUM(total_sales) as total_sales')
             ->groupBy('counter_id')
             ->get();
 
-        // 2. All shifts of today
         $shifts = Shift::with('counter')
             ->orderBy('created_at', 'desc')
             ->get();
@@ -179,12 +179,17 @@ class ShiftController extends Controller
 
         $counter->update([
             'start_time'      => now(),
+            'end_time'        => null,
             'opened_by'       => $request->user()->name,
             'closed_by'       => null,
             'status'          => 'open',
         ]);
 
-        return response()->json($counter);
+        return response()->json([
+            'status' => true,
+            'message' => 'Counter opened successfully.',
+            'data' => $counter,
+        ]);
     }
 
     public function closeCounter(Request $request, $id)
@@ -197,13 +202,40 @@ class ShiftController extends Controller
             return response()->json(['message' => 'No open counter found.'], 404);
         }
 
+        $endTime = now();
+        $startTime = $counter->start_time;
+
         $counter->update([
-            'end_time'       => now(),
-            'closed_by'       => $request->user()->name,
+            'end_time'       => $endTime,
+            'closed_by'      => $request->user()->name,
             'status'         => 'closed',
         ]);
 
-        return response()->json($counter);
+        if ($startTime) {
+            $shiftIds = Shift::where('counter_id', $counter->id)
+                ->where('start_time', '>=', $startTime)
+                ->where(function ($query) use ($endTime) {
+                    $query->whereNull('end_time')
+                        ->orWhere('end_time', '<=', $endTime);
+                })
+                ->pluck('id');
+
+            $totalSales = Sale::whereIn('shift_id', $shiftIds)->sum('finalTotal');
+            $totalClosingCash = Shift::whereIn('id', $shiftIds)->sum('closing_cash');
+
+            DailyReport::create([
+                'report_date' => $endTime->toDateString(),
+                'counter_id' => $counter->id,
+                'total_sales' => $totalSales,
+                'total_closing_cash' => $totalClosingCash,
+            ]);
+        }
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Counter closed successfully.',
+            'data' => $counter->fresh(),
+        ]);
     }
     
     public function generateReportManually()

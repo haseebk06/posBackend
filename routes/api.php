@@ -39,6 +39,8 @@ Route::prefix('/sale')->group(function () {
     Route::get('/get/retrun/{id}/{userId}', [SaleController::class, 'getCurrentShiftRetruns']);
     Route::get('/prev/retrun/{id}/{userId}', [SaleController::class, 'getPreviousShiftRetruns']);
     Route::get('/get/prev/{id}/{userId}', [SaleController::class, 'getPreviousShiftSales']);
+    Route::get('/current-shift-items/{id}/{userId}', [SaleController::class, 'getCurrentShiftItemsSold']);
+    Route::get('/previous-shift-items/{id}/{userId}', [SaleController::class, 'getPreviousShiftItemsSold']);
     Route::get('/get/returns', [SaleController::class, 'getReturns']);
     Route::get('/get/all', [SaleController::class, 'getAllTransactions']);
     Route::post('/get/holdItems', [SaleController::class, 'getHoldItems']);
@@ -134,4 +136,3 @@ Route::prefix('/server')->group(function () {
 Route::prefix('/print')->group(function () {
     Route::post('/barcode', [BarcodePrintController::class, 'printBarcode']);
 });
-

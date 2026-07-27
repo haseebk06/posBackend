@@ -7,6 +7,7 @@ use App\Models\MenuItemVariant;
 use App\Models\MenuCategory;
 use Illuminate\Http\Request;
 use App\Models\MenuItem;
+use App\Models\Order;
 use App\Models\Table;
 
 class MenuController extends Controller
@@ -279,6 +280,13 @@ class MenuController extends Controller
         }
         
         if ($orderId != null && $serverId != null) {
+            if (!Order::where('id', $orderId)->exists()) {
+                return response()->json([
+                    'status'  => false,
+                    'message' => 'Order not found for this table.'
+                ], 404);
+            }
+
             $table->update([
                 'status' => $status,
                 'payment_status' => $pay,
@@ -286,10 +294,17 @@ class MenuController extends Controller
                 'server_id' => $serverId,
             ]);
         } else {
-            $table->update([
+            $data = [
                 'status' => $status,
                 'payment_status' => $pay,
-            ]);
+            ];
+
+            if ($pay === 'completed') {
+                $data['order_id'] = null;
+                $data['server_id'] = null;
+            }
+
+            $table->update($data);
         }
 
 
