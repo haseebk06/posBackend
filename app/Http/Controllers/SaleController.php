@@ -48,6 +48,14 @@ class SaleController extends Controller
             ->where('shift_id', $id)
             ->sum('discount');
 
+        $totalGst = Sale::where('user_id', $userId)
+            ->where('shift_id', $id)
+            ->sum('gst');
+
+        $totalServiceCharges = Sale::where('user_id', $userId)
+            ->where('shift_id', $id)
+            ->sum('service_charges');
+
         return response()->json([
             'status' => true,
             'message' => 'Sales fetched successfully',
@@ -55,6 +63,8 @@ class SaleController extends Controller
             'total_sales' => $totalSales,
             'gross_sales' => $totalGrossSales,
             'total_discount' => $totalDiscount,
+            'total_gst' => $totalGst,
+            'total_service_charges' => $totalServiceCharges,
         ], 200);
     }
     
@@ -410,6 +420,8 @@ class SaleController extends Controller
         $sale->user_id = $request->user()->id;
         $sale->total = $request["total"];
         $sale->tax = $request["tax"];
+        $sale->gst = $request["gst"] ?? 0;
+        $sale->service_charges = $request["service_charges"] ?? 0;
         $sale->shift_id = $request["shift_id"];
         $sale->discount = $request["discount"];
         $sale->finalTotal = $request["finalTotal"];

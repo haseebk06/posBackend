@@ -13,6 +13,8 @@ class Sale extends Model
         'items',
         'total',
         'tax',
+        'gst',
+        'service_charges',
         'discount',
         'finalTotal',
         'paymentMethod',

@@ -84,6 +84,7 @@ Route::prefix('/counter')->group(function () {
     Route::put('/close/{id}', [ShiftController::class, 'closeCounter'])->middleware('auth:sanctum');
     Route::get('/reports', [ShiftController::class, 'dailyReports']);
     Route::get('/reports/generate', [ShiftController::class, 'generateReportManually']);
+    Route::get('/report/last/{counterId}', [ShiftController::class, 'lastCounterReport']);
 });
 
 Route::prefix('/menu')->group(function () {
