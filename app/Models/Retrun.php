@@ -11,6 +11,8 @@ class Retrun extends Model
         'items',
         'total',
         'tax',
+        'gst',
+        'service_charges',
         'discount',
         'finalTotal',
         'paymentMethod',
@@ -31,24 +33,14 @@ class Retrun extends Model
     {
         return $this->hasMany(RetrunItem::class, 'return_id');
     }
-    
-    public function sales()
+
+    public function sale()
     {
-        return $this->belongsTo(Sale::class);
+        return $this->belongsTo(Sale::class, 'sale_id');
     }
 
     public function shift()
     {
         return $this->belongsTo(Shift::class);
-    }
-
-    public function returnedSales()
-    {
-        return $this->hasMany(Sale::class, 'original_sale_id');
-    }
-
-    public function originalSale()
-    {
-        return $this->belongsTo(Sale::class, 'original_sale_id');
     }
 }

@@ -236,6 +236,7 @@ class ShiftController extends Controller
             $returns = Retrun::whereIn('shift_id', $shiftIds)->get();
 
             $paymentTotal = fn ($method) => (float) $sales->where('paymentMethod', $method)->sum('finalTotal');
+            $returnPaymentTotal = fn ($method) => (float) $returns->where('paymentMethod', $method)->sum('finalTotal');
 
             $itemsSold = SoldItems::query()
                 ->join('sales', 'sold_items.sale_id', '=', 'sales.id')
@@ -247,12 +248,21 @@ class ShiftController extends Controller
                 ->get();
 
             $grossSales = (float) $sales->sum('total');
-            $netSales = (float) $sales->sum('finalTotal');
+            $rawFinalSales = (float) $sales->sum('finalTotal');
             $totalDiscount = (float) $sales->sum('discount');
             $totalTax = (float) $sales->sum('tax');
             $totalServiceCharges = (float) $sales->sum('service_charges');
             $totalExpenses = (float) Shift::whereIn('id', $shiftIds)->sum('total_expenses');
             $totalReturns = (float) $returns->sum('finalTotal');
+
+            // Sale rows are never mutated by a return (see SaleController::addReturns),
+            // so $rawFinalSales still includes the original amount of fully and partially
+            // returned sales. Retrun rows are the sole source of truth for refunded
+            // amounts, so every sales figure below is netted against them explicitly
+            // instead of relying on the sale row itself having been adjusted.
+            $cashReturns = (float) $returnPaymentTotal('cash');
+            $cardReturns = (float) $returnPaymentTotal('card');
+            $mobileReturns = (float) $returnPaymentTotal('mobile');
 
             $round = fn ($num) => round((float) $num);
 
@@ -264,15 +274,18 @@ class ShiftController extends Controller
                 'closedAt'            => $counter->end_time,
                 'openingAmount'       => $round($firstShift->opening_cash ?? 0),
                 'closingAmount'       => $round($lastShift->closing_cash ?? 0),
-                'totalSales'          => $round($netSales),
+                'totalSales'          => $round($rawFinalSales - $totalReturns),
                 'grossSales'          => $round($grossSales),
-                'netSales'            => $round($netSales - $totalDiscount),
+                'netSales'            => $round($rawFinalSales - $totalDiscount - $totalReturns),
                 'totalTax'            => $round($totalTax),
                 'totalServiceCharges' => $round($totalServiceCharges),
                 'totalDiscount'       => $round($totalDiscount),
-                'cashSales'           => $round($paymentTotal('cash')),
-                'cardSales'           => $round($paymentTotal('card')),
-                'mobileSales'         => $round($paymentTotal('mobile')),
+                'cashSales'           => $round($paymentTotal('cash') - $cashReturns),
+                'cardSales'           => $round($paymentTotal('card') - $cardReturns),
+                'mobileSales'         => $round($paymentTotal('mobile') - $mobileReturns),
+                'cashReturns'         => $round($cashReturns),
+                'cardReturns'         => $round($cardReturns),
+                'mobileReturns'       => $round($mobileReturns),
                 'totalOrders'         => $sales->count(),
                 'dineInOrders'        => $sales->filter(fn ($s) => strtolower((string) $s->mode) === 'dine-in')->count(),
                 'takeAwayOrders'      => $sales->filter(fn ($s) => strtolower((string) $s->mode) === 'takeaway')->count(),
@@ -288,7 +301,7 @@ class ShiftController extends Controller
             DailyReport::create([
                 'report_date'        => $endTime->toDateString(),
                 'counter_id'         => $counter->id,
-                'total_sales'        => $netSales,
+                'total_sales'        => $report['netSales'],
                 'total_closing_cash' => $lastShift->closing_cash ?? 0,
                 'report_data'        => $report,
             ]);
