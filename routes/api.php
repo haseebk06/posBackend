@@ -125,6 +125,7 @@ Route::prefix('/tables')->group(function () {
     Route::get('/{id}', [MenuController::class, 'show']);
     Route::put('/{id}', [MenuController::class, 'update']);
     Route::put('/status/{id}/{status}/{pay}/{orderId?}/{serverId?}', [MenuController::class, 'updateStatus']);
+    Route::put('/transfer/{id}', [MenuController::class, 'transferTable']);
     Route::delete('/{id}', [MenuController::class, 'destroy']);
 });
 
