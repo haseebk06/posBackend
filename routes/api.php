@@ -64,7 +64,6 @@ Route::prefix('/order')->group(function () {
 Route::prefix('/store')->group(function () {
     Route::get('/get', [StoreInformationController::class, 'getStoreInfo']);
     Route::post('/add', [StoreInformationController::class, 'addStoreInfo'])->middleware('auth:sanctum');
-    Route::post('/update/{id}', [StoreInformationController::class, 'updateStoreInfo'])->middleware('auth:sanctum');
 });
 
 //shift Information

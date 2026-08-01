@@ -250,7 +250,7 @@ class ShiftController extends Controller
             $grossSales = (float) $sales->sum('total');
             $rawFinalSales = (float) $sales->sum('finalTotal');
             $totalDiscount = (float) $sales->sum('discount');
-            $totalTax = (float) $sales->sum('tax');
+            $totalGst = (float) $sales->sum('gst');
             $totalServiceCharges = (float) $sales->sum('service_charges');
             $totalExpenses = (float) Shift::whereIn('id', $shiftIds)->sum('total_expenses');
             $totalReturns = (float) $returns->sum('finalTotal');
@@ -276,8 +276,10 @@ class ShiftController extends Controller
                 'closingAmount'       => $round($lastShift->closing_cash ?? 0),
                 'totalSales'          => $round($rawFinalSales - $totalReturns),
                 'grossSales'          => $round($grossSales),
-                'netSales'            => $round($rawFinalSales - $totalDiscount - $totalReturns),
-                'totalTax'            => $round($totalTax),
+                // finalTotal already has the discount baked in (see SaleController::addSales),
+                // so netSales must not subtract it again - it only nets out returns.
+                'netSales'            => $round($rawFinalSales - $totalReturns),
+                'totalGst'            => $round($totalGst),
                 'totalServiceCharges' => $round($totalServiceCharges),
                 'totalDiscount'       => $round($totalDiscount),
                 'cashSales'           => $round($paymentTotal('cash') - $cashReturns),

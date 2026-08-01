@@ -17,5 +17,7 @@ class StoreInformation extends Model
         'taxId',
         'logo',
         'currency',
+        'gstPercentage',
+        'serviceChargePercentage',
     ];
 }

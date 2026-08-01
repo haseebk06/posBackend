@@ -417,7 +417,6 @@ class SaleController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'total' => 'required|max:255',
-            'tax' => 'required|max:255',
             'discount' => 'required|max:255',
             'finalTotal' => 'required|max:255',
             'paymentMethod' => 'required|max:255',
@@ -436,7 +435,9 @@ class SaleController extends Controller
         $sale = new Sale();
         $sale->user_id = $request->user()->id;
         $sale->total = $request["total"];
-        $sale->tax = $request["tax"];
+        // 'tax' (a manual ad-hoc percentage the cashier used to type in) is
+        // retired - GST/SST and service charges are the only charges applied now.
+        $sale->tax = 0;
         $sale->gst = $request["gst"] ?? 0;
         $sale->service_charges = $request["service_charges"] ?? 0;
         $sale->shift_id = $request["shift_id"];

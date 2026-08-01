@@ -5,60 +5,48 @@ namespace App\Http\Controllers;
 use App\Models\StoreInformation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class StoreInformationController extends Controller
 {
+    // There is only ever one store's settings, so this always returns the
+    // single existing row (or null if it hasn't been set up yet) rather than
+    // a list - the frontend renders it as a single settings form.
     public function getStoreInfo()
     {
-        $sales = StoreInformation::with('soldItems')->get();
+        $storeInfo = StoreInformation::first();
 
         return response()->json([
             'status' => true,
-            'message' => 'Stocks fetched successfully',
-            'data' => $sales,
-        ], 201);
-    }
-
-    public function addStoreInfo(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'storeName' => 'required|unique:store_information,storeName|max:255',
-            'address' => 'required|max:255',
-            'phone' => 'required|max:255',
-            'email' => 'unique:store_information,email|max:255',
-            'currency' => 'required|max:255',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Validation error',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        $storeInfo = StoreInformation::create($request->all());
-        $storeInfo->save();
-
-        return response()->json([
-            'status' => true,
-            'message' => 'Store Information added successfully',
+            'message' => 'Store information fetched successfully',
             'data' => $storeInfo,
         ], 200);
     }
 
-    public function updateStoreInfo(Request $request, $id)
+    // Create-or-update the single store settings row. Previously this always
+    // inserted a new row, so saving Settings a second time hit the unique
+    // constraint on storeName/email and failed - now it updates the existing
+    // row (excluded from the uniqueness check against itself) if one exists.
+    public function addStoreInfo(Request $request)
     {
-        // Validate the request data
+        $existing = StoreInformation::first();
+
         $validator = Validator::make($request->all(), [
-            'items' => 'sometimes|max:255',
-            'total' => 'sometimes|max:255',
-            'tax' => 'sometimes|max:255',
-            'discount' => 'sometimes|max:255',
-            'finalTotal' => 'sometimes|max:255',
-            'paymentMethod' => 'sometimes|max:255',
-            'amountReceived' => 'sometimes|max:255',
-            'changeAmount' => 'sometimes|max:255',
+            'storeName' => [
+                'required', 'max:255',
+                Rule::unique('store_information', 'storeName')->ignore($existing?->id),
+            ],
+            'address' => 'required|max:255',
+            'phone' => 'required|max:255',
+            'email' => [
+                'nullable', 'max:255',
+                Rule::unique('store_information', 'email')->ignore($existing?->id),
+            ],
+            'currency' => 'required|max:255',
+            'taxId' => 'nullable|max:255',
+            'logo' => 'nullable|string',
+            'gstPercentage' => 'nullable|numeric|min:0|max:100',
+            'serviceChargePercentage' => 'nullable|numeric|min:0|max:100',
         ]);
 
         if ($validator->fails()) {
@@ -69,36 +57,17 @@ class StoreInformationController extends Controller
             ], 422);
         }
 
-        $sale = StoreInformation::where('id', $id)
-            ->where('id', $request->id)
-            ->first();
-
-        if (!$sale) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Stock item not found or you don\'t have permission to update it',
-            ], 404);
-        }
-
-        // Update only the fields that were provided in the request
-        $sale->fill($request->only([
-            'items',
-            'total',
-            'tax',
-            'discount',
-            'finalTotal',
-            'paymentMethod',
-            'amountReceived',
-            'changeAmount'
+        $storeInfo = $existing ?? new StoreInformation();
+        $storeInfo->fill($request->only([
+            'storeName', 'address', 'phone', 'email', 'taxId', 'logo', 'currency',
+            'gstPercentage', 'serviceChargePercentage',
         ]));
-
-        $sale->user_id = $request->user()->id;
-        $sale->save();
+        $storeInfo->save();
 
         return response()->json([
             'status' => true,
-            'message' => 'Stock updated successfully',
-            'data' => $sale,
+            'message' => 'Store information saved successfully',
+            'data' => $storeInfo,
         ], 200);
     }
 }
