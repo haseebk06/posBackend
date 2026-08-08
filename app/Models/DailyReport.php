@@ -14,11 +14,6 @@ class DailyReport extends Model
         'counter_id',
         'total_sales',
         'total_closing_cash',
-        'report_data',
-    ];
-
-    protected $casts = [
-        'report_data' => 'array',
     ];
 
     public function counter()

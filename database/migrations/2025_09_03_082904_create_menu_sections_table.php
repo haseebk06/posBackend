@@ -18,6 +18,7 @@ return new class extends Migration
             $table->boolean('is_active')->default(true);
             $table->integer('sort_order')->default(0);
             $table->foreignId('menu_item_id')
+                  ->nullable()
                   ->constrained('menu_items')
                   ->onDelete('cascade');
             $table->timestamps();

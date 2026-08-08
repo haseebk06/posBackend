@@ -33,14 +33,24 @@ class Retrun extends Model
     {
         return $this->hasMany(RetrunItem::class, 'return_id');
     }
-
-    public function sale()
+    
+    public function sales()
     {
-        return $this->belongsTo(Sale::class, 'sale_id');
+        return $this->belongsTo(Sale::class);
     }
 
     public function shift()
     {
         return $this->belongsTo(Shift::class);
+    }
+
+    public function returnedSales()
+    {
+        return $this->hasMany(Sale::class, 'original_sale_id');
+    }
+
+    public function originalSale()
+    {
+        return $this->belongsTo(Sale::class, 'original_sale_id');
     }
 }

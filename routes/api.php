@@ -11,6 +11,9 @@ use App\Http\Controllers\OrderController;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ServerController;
+use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\InvoiceController;
+use App\Http\Controllers\PartyLedgerController;
 
 
 //user
@@ -39,8 +42,10 @@ Route::prefix('/sale')->group(function () {
     Route::get('/get/retrun/{id}/{userId}', [SaleController::class, 'getCurrentShiftRetruns']);
     Route::get('/prev/retrun/{id}/{userId}', [SaleController::class, 'getPreviousShiftRetruns']);
     Route::get('/get/prev/{id}/{userId}', [SaleController::class, 'getPreviousShiftSales']);
-    Route::get('/current-shift-items/{id}/{userId}', [SaleController::class, 'getCurrentShiftItemsSold']);
-    Route::get('/previous-shift-items/{id}/{userId}', [SaleController::class, 'getPreviousShiftItemsSold']);
+    
+    Route::get('/current-shift-items/{shiftId}/{userId}', [SaleController::class, 'getCurrentShiftItemsSold']);
+    Route::get('/previous-shift-items/{counterId}/{userId}', [SaleController::class, 'getPreviousShiftItemsSold']);
+
     Route::get('/get/returns', [SaleController::class, 'getReturns']);
     Route::get('/get/all', [SaleController::class, 'getAllTransactions']);
     Route::post('/get/holdItems', [SaleController::class, 'getHoldItems']);
@@ -63,7 +68,11 @@ Route::prefix('/order')->group(function () {
 //store Information
 Route::prefix('/store')->group(function () {
     Route::get('/get', [StoreInformationController::class, 'getStoreInfo']);
+    Route::get('/get/{id}', [StoreInformationController::class, 'show']);
     Route::post('/add', [StoreInformationController::class, 'addStoreInfo'])->middleware('auth:sanctum');
+    Route::post('/update/{id}', [StoreInformationController::class, 'updateStoreInfo'])->middleware('auth:sanctum');
+    Route::put('/update/{id}', [StoreInformationController::class, 'updateStoreInfo'])->middleware('auth:sanctum');
+    Route::delete('/delete/{id}', [StoreInformationController::class, 'destroy'])->middleware('auth:sanctum');
 });
 
 //shift Information
@@ -83,7 +92,6 @@ Route::prefix('/counter')->group(function () {
     Route::put('/close/{id}', [ShiftController::class, 'closeCounter'])->middleware('auth:sanctum');
     Route::get('/reports', [ShiftController::class, 'dailyReports']);
     Route::get('/reports/generate', [ShiftController::class, 'generateReportManually']);
-    Route::get('/report/last/{counterId}', [ShiftController::class, 'lastCounterReport']);
 });
 
 Route::prefix('/menu')->group(function () {
@@ -124,7 +132,7 @@ Route::prefix('/tables')->group(function () {
     Route::get('/{id}', [MenuController::class, 'show']);
     Route::put('/{id}', [MenuController::class, 'update']);
     Route::put('/status/{id}/{status}/{pay}/{orderId?}/{serverId?}', [MenuController::class, 'updateStatus']);
-    Route::put('/transfer/{id}', [MenuController::class, 'transferTable']);
+    Route::put('/transfer/{fromTableId}', [MenuController::class, 'transferTable']);
     Route::delete('/{id}', [MenuController::class, 'destroy']);
 });
 
@@ -132,6 +140,30 @@ Route::prefix('/server')->group(function () {
     Route::post('/add', [ServerController::class, 'store'])->middleware('auth:sanctum');
     Route::get('/get', [ServerController::class, 'index']);
     Route::delete('/{id}', [ServerController::class, 'destroy'])->middleware('auth:sanctum');
+});
+
+Route::prefix('/customer')->group(function () {
+    Route::post('/add', [CustomerController::class, 'store'])->middleware('auth:sanctum');
+    Route::get('/get', [CustomerController::class, 'index']);
+    Route::get('/get/{id}', [CustomerController::class, 'show']);
+    Route::put('/update/{id}', [CustomerController::class, 'update'])->middleware('auth:sanctum');
+    Route::delete('/delete/{id}', [CustomerController::class, 'destroy'])->middleware('auth:sanctum');
+});
+
+Route::prefix('/invoice')->group(function () {
+    Route::post('/add', [InvoiceController::class, 'store'])->middleware('auth:sanctum');
+    Route::get('/get', [InvoiceController::class, 'index']);
+    Route::get('/get/{id}', [InvoiceController::class, 'show']);
+    Route::put('/update/{id}', [InvoiceController::class, 'update'])->middleware('auth:sanctum');
+    Route::delete('/delete/{id}', [InvoiceController::class, 'destroy'])->middleware('auth:sanctum');
+});
+
+Route::prefix('/party-ledger')->group(function () {
+    Route::post('/add', [PartyLedgerController::class, 'store'])->middleware('auth:sanctum');
+    Route::get('/get', [PartyLedgerController::class, 'index']);
+    Route::get('/get/{id}', [PartyLedgerController::class, 'show']);
+    Route::put('/update/{id}', [PartyLedgerController::class, 'update'])->middleware('auth:sanctum');
+    Route::delete('/delete/{id}', [PartyLedgerController::class, 'destroy'])->middleware('auth:sanctum');
 });
 
 Route::prefix('/print')->group(function () {

@@ -15,6 +15,8 @@ return new class extends Migration
             $table->id();
             $table->decimal('total', 10, 2);
             $table->decimal('tax', 10, 2)->nullable();
+            $table->decimal('gst', 10, 2)->nullable();
+            $table->decimal('service_charges', 10, 2)->nullable();
             $table->decimal('discount', 10, 2)->nullable();
             $table->decimal('finalTotal', 10, 2);
             $table->enum('paymentMethod', ['cash', 'card', 'mobile', 'return']);

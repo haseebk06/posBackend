@@ -31,17 +31,21 @@ class GenerateDailyReport extends Command
     {
         $yesterday = Carbon::yesterday()->toDateString();
 
-        $totals = Shift::whereDate('end_time', $yesterday)
-            ->where('status', 'closed')
+        // Check if already generated
+        if (DailyReport::where('report_date', $yesterday)->exists()) {
+            $this->info("Report already exists for {$yesterday}");
+            return;
+        }
+
+        $totals = Shift::whereDate('start_time', $yesterday)
             ->selectRaw('counter_id, SUM(closing_cash) as total_closing_cash, SUM(total_sales) as total_sales')
             ->groupBy('counter_id')
             ->get();
 
         foreach ($totals as $total) {
-            DailyReport::updateOrCreate([
-                'report_date' => $yesterday,
-                'counter_id' => $total->counter_id,
-            ], [
+            DailyReport::create([
+                'report_date'        => $yesterday,
+                'counter_id'         => $total->counter_id,
                 'total_sales'        => $total->total_sales,
                 'total_closing_cash' => $total->total_closing_cash,
             ]);

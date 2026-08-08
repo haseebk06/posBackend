@@ -18,6 +18,8 @@ return new class extends Migration
             $table->string("phone");
             $table->string("email")->unique()->nullable();
             $table->string("taxId")->nullable();
+            $table->string("gst")->nullable();
+            $table->string("sst")->nullable();
             $table->string("logo")->nullable();
             $table->string("currency");
             $table->timestamps();

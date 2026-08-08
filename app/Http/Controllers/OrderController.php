@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Order;
 use App\Models\OrderItem;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
 class OrderController extends Controller
@@ -121,23 +120,7 @@ class OrderController extends Controller
     public function addOrderItems(Request $request)
     {
         $user = $request->user();
-
-        $validator = Validator::make($request->all(), [
-            'order_id' => 'nullable|exists:orders,id',
-            'items' => 'required|array|min:1',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Validation error',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        $order = $request->filled('order_id')
-            ? $user->orders()->where('id', $request->order_id)->first()
-            : $user->orders()->latest()->first();
+        $order = $user->orders()->latest()->first();
 
         if (!$order) {
             return response()->json([
@@ -154,11 +137,11 @@ class OrderController extends Controller
             $orderItem = new OrderItem();
             $orderItem->name = $item['name'];
             $orderItem->quantity = $item['quantity'];
-            $orderItem->barcode = $item['barcode'] ?? null;
+            $orderItem->barcode = $item['barcode'];
             $orderItem->category = $item['category'] ?? null;
             $orderItem->costPrice = $item['costPrice'];
             $orderItem->sellingPrice = $item['sellingPrice'];
-            $orderItem->stock = $item['stock'] ?? null;
+            $orderItem->stock = $item['stock'];
             $orderItem->subtotal = $item['subtotal'];
             $orderItem->unit = $item['unit'] ?? null;
             $orderItem->order_id = $orderId;
@@ -177,47 +160,31 @@ class OrderController extends Controller
     public function addOrderAddons(Request $request, $orderId)
     {
 
-        $order = Order::where('id', $orderId)->first();
-
-        if (!$order) {
+        if (!$orderId) {
             return response()->json([
                 'status' => false,
-                'message' => 'No order found for this table.'
+                'message' => 'No orderId found.'
             ], 404);
-        }
-
-        $validator = Validator::make($request->all(), [
-            'items' => 'required|array|min:1',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Validation error',
-                'errors' => $validator->errors()
-            ], 422);
         }
 
         $savedItems = [];
 
-        DB::transaction(function () use ($request, $orderId, &$savedItems) {
-            foreach ($request->items as $item) {
-                $orderItem = new OrderItem();
-                $orderItem->name = $item['name'];
-                $orderItem->quantity = $item['quantity'];
-                $orderItem->barcode = $item['barcode'] ?? null;
-                $orderItem->category = $item['category'] ?? null;
-                $orderItem->costPrice = $item['costPrice'];
-                $orderItem->sellingPrice = $item['sellingPrice'];
-                $orderItem->stock = $item['stock'] ?? null;
-                $orderItem->subtotal = $item['subtotal'];
-                $orderItem->unit = $item['unit'] ?? null;
-                $orderItem->order_id = $orderId;
-                $orderItem->save();
+        foreach ($request->items as $item) {
+            $orderItem = new OrderItem();
+            $orderItem->name = $item['name'];
+            $orderItem->quantity = $item['quantity'];
+            $orderItem->barcode = $item['barcode'];
+            $orderItem->category = $item['category'] ?? null;
+            $orderItem->costPrice = $item['costPrice'];
+            $orderItem->sellingPrice = $item['sellingPrice'];
+            $orderItem->stock = $item['stock'];
+            $orderItem->subtotal = $item['subtotal'];
+            $orderItem->unit = $item['unit'] ?? null;
+            $orderItem->order_id = $orderId;
+            $orderItem->save();
 
-                $savedItems[] = $orderItem;
-            }
-        });
+            $savedItems[] = $orderItem;
+        }
 
         return response()->json([
             'status' => true,

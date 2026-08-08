@@ -3,11 +3,11 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
 use App\Models\MenuItemVariant;
 use App\Models\MenuCategory;
 use Illuminate\Http\Request;
 use App\Models\MenuItem;
-use App\Models\Order;
 use App\Models\Table;
 
 class MenuController extends Controller
@@ -186,7 +186,9 @@ class MenuController extends Controller
     //  Get all tables
     public function index()
     {
-        $tables = Table::with('server')->get();
+        $tables = Table::with('server')
+    ->orderByRaw("CAST(SUBSTRING_INDEX(name, '#', -1) AS UNSIGNED) ASC")
+    ->get();
         return response()->json([
             'status' => true,
             'data'   => $tables
@@ -280,13 +282,6 @@ class MenuController extends Controller
         }
         
         if ($orderId != null && $serverId != null) {
-            if (!Order::where('id', $orderId)->exists()) {
-                return response()->json([
-                    'status'  => false,
-                    'message' => 'Order not found for this table.'
-                ], 404);
-            }
-
             $table->update([
                 'status' => $status,
                 'payment_status' => $pay,
@@ -294,17 +289,10 @@ class MenuController extends Controller
                 'server_id' => $serverId,
             ]);
         } else {
-            $data = [
+            $table->update([
                 'status' => $status,
                 'payment_status' => $pay,
-            ];
-
-            if ($pay === 'completed') {
-                $data['order_id'] = null;
-                $data['server_id'] = null;
-            }
-
-            $table->update($data);
+            ]);
         }
 
 
@@ -314,96 +302,90 @@ class MenuController extends Controller
             'data'    => $table
         ]);
     }
-
-    // Transfer an in-progress order to another table and/or reassign its waiter.
-    // Tables have no reverse reference from Order back to Table, so the Table
-    // row is the sole source of truth for which table/waiter currently holds
-    // an order - transferring means moving order_id/server_id/status between
-    // the two Table rows, not touching the Order itself.
-    public function transferTable(Request $request, $id)
+        
+    //  transfer table
+    public function transferTable(Request $request, $fromTableId)
     {
-        $validator = Validator::make($request->all(), [
-            'to_table_id' => 'nullable|exists:tables,id',
-            'waiter_id'   => 'nullable|exists:servers,id',
-            'order_id'    => 'required|exists:orders,id',
+        $request->validate([
+            'to_table_id'   => 'nullable', // can be empty
+            'waiter_id'     => 'nullable',
+            'order_id'      => 'required',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'status'  => false,
-                'message' => 'Validation error',
-                'errors'  => $validator->errors()
-            ], 422);
-        }
-
-        $fromTable = Table::find($id);
-
-        if (!$fromTable) {
-            return response()->json([
-                'status'  => false,
-                'message' => 'Table not found.'
-            ], 404);
-        }
-
-        if ((int) $fromTable->order_id !== (int) $request->order_id) {
-            return response()->json([
-                'status'  => false,
-                'message' => 'This order is no longer on the selected table.'
-            ], 409);
-        }
-
-        $toTableId = $request->to_table_id;
-
-        if ($toTableId && (int) $toTableId !== (int) $id) {
-            $toTable = Table::find($toTableId);
-
-            if (!$toTable) {
-                return response()->json([
-                    'status'  => false,
-                    'message' => 'Destination table not found.'
-                ], 404);
+    
+        try {
+            DB::beginTransaction();
+    
+            $fromTable = Table::findOrFail($fromTableId);
+            $order_id  = $request->order_id;
+            $waiter_id = $request->waiter_id ?? $fromTable->server_id;
+    
+            // CASE 1: Transfer to another table
+            if (!empty($request->to_table_id)) {
+                $toTable = Table::findOrFail($request->to_table_id);
+    
+                // Ensure destination table is available
+                if ($toTable->status != 1) {
+                    return response()->json([
+                        'status'  => false,
+                        'message' => 'The selected table is not available.',
+                    ], 400);
+                }
+    
+                // Unlink order from old table
+                $fromTable->update([
+                    'status'          => 1, // mark old table available
+                    'payment_status'  => 'completed',
+                    'order_id'        => null,
+                    'server_id'       => null,
+                ]);
+    
+                // Assign order to the new table
+                $toTable->update([
+                    'status'          => 0, // occupied
+                    'payment_status'  => 'pending',
+                    'order_id'        => $order_id,
+                    'server_id'       => $waiter_id,
+                ]);
+    
+                $result = [
+                    'from_table' => $fromTable,
+                    'to_table'   => $toTable,
+                    'order_id'   => $order_id,
+                ];
+            } 
+            // CASE 2: No "to_table_id" provided → only update the current (from) table
+            else {
+                $fromTable->update([
+                    'server_id'       => $waiter_id,
+                    'payment_status'  => 'pending',
+                    'order_id'        => $order_id,
+                ]);
+    
+                $result = [
+                    'updated_table' => $fromTable,
+                    'order_id'      => $order_id,
+                ];
             }
-
-            if ($toTable->order_id) {
-                return response()->json([
-                    'status'  => false,
-                    'message' => 'Destination table already has an active order.'
-                ], 409);
-            }
-
-            // Destination becomes occupied by this order.
-            $toTable->update([
-                'status'         => false,
-                'payment_status' => 'pending',
-                'order_id'       => $request->order_id,
-                'server_id'      => $request->waiter_id ?? $fromTable->server_id,
+    
+            DB::commit();
+    
+            return response()->json([
+                'status'  => true,
+                'message' => !empty($request->to_table_id)
+                    ? 'Table transferred successfully.'
+                    : 'Table updated successfully.',
+                'data'    => $result,
             ]);
-
-            // Source frees up, mirroring the "1/completed" reset used when a
-            // table's payment completes.
-            $fromTable->update([
-                'status'         => true,
-                'payment_status' => 'completed',
-                'order_id'       => null,
-                'server_id'      => null,
-            ]);
-
-            $result = $toTable->fresh();
-        } else {
-            // Same table - just reassigning the waiter serving this order.
-            $fromTable->update([
-                'server_id' => $request->waiter_id,
-            ]);
-
-            $result = $fromTable->fresh();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'status'  => false,
+                'message' => 'Failed to transfer or update table.',
+                'error'   => $e->getMessage(),
+            ], 500);
         }
-
-        return response()->json([
-            'status'  => true,
-            'message' => 'Table transferred successfully.',
-            'data'    => $result,
-        ]);
     }
+
 
     //  Delete table
     public function destroy($id)

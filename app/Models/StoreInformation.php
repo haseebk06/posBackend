@@ -15,9 +15,16 @@ class StoreInformation extends Model
         'phone',
         'email',
         'taxId',
+        'gst',
         'logo',
         'currency',
-        'gstPercentage',
-        'serviceChargePercentage',
+        'sst',
+        'wh_tax_percentage',
+        'sst_withholding_tax_percentage',
     ];
+
+    public function invoices()
+    {
+        return $this->hasMany(Invoice::class);
+    }
 }
