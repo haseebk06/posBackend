@@ -33,7 +33,7 @@ return new class extends Migration
             $table->decimal('received', 15, 2)->default(0);
             $table->string('chq_number')->nullable();
             $table->date('cheque_received_date')->nullable();
-            $table->enum('invoice_status', ['SBR Paid', 'SBR Pending', 'SBR declined'])->default('SBR Pending');
+            $table->enum('invoice_status', ['SRB Paid', 'SRB Pending', 'SRB declined'])->default('SRB Pending');
             $table->timestamps();
         });
     }
