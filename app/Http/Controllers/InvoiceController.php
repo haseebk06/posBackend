@@ -18,6 +18,14 @@ class InvoiceController extends Controller
         return response()->json($invoices);
     }
 
+    public function nextNumber()
+    {
+        return response()->json([
+            'status' => true,
+            'invoice_number' => ((int) Invoice::withTrashed()->max('invoice_number')) + 1,
+        ]);
+    }
+
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), $this->rules());

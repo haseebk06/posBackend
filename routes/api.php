@@ -154,6 +154,7 @@ Route::prefix('/customer')->group(function () {
 Route::prefix('/invoice')->group(function () {
     Route::post('/add', [InvoiceController::class, 'store'])->middleware('auth:sanctum');
     Route::get('/get', [InvoiceController::class, 'index']);
+    Route::get('/next-number', [InvoiceController::class, 'nextNumber'])->middleware('auth:sanctum');
     Route::get('/get/{id}', [InvoiceController::class, 'show']);
     Route::put('/update/{id}', [InvoiceController::class, 'update'])->middleware('auth:sanctum');
     Route::delete('/delete/{id}', [InvoiceController::class, 'destroy'])->middleware('auth:sanctum');
