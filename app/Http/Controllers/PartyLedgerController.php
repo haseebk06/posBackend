@@ -90,6 +90,32 @@ class PartyLedgerController extends Controller
         ]);
     }
 
+    public function updatePayment(Request $request, $id)
+    {
+        $ledger = PartyLedger::findOrFail($id);
+        $validated = $request->validate([
+            'advance' => ['nullable', 'numeric', 'min:0'],
+            'paid_amount' => ['nullable', 'numeric', 'min:0'],
+            'paid_date' => ['nullable', 'date'],
+            'cheque_no' => ['nullable', 'string', 'max:255'],
+            'bank_name' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $ledger->update([
+            'advance' => $validated['advance'] ?? null,
+            'paid_amount' => $validated['paid_amount'] ?? null,
+            'paid_date' => $validated['paid_date'] ?? null,
+            'cheque_no' => $validated['cheque_no'] ?? null,
+            'bank_name' => $validated['bank_name'] ?? null,
+        ]);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Party ledger payment details updated successfully',
+            'data' => $ledger->refresh()->load(['customer', 'poFromInvoice', 'poToInvoice']),
+        ]);
+    }
+
     public function destroy(Request $request, $id)
     {
         $ledger = PartyLedger::findOrFail($id);

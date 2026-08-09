@@ -28,6 +28,11 @@ class PartyLedger extends Model
         'rate',
         'amount',
         'name',
+        'advance',
+        'paid_amount',
+        'paid_date',
+        'cheque_no',
+        'bank_name',
     ];
 
     public function customer()
