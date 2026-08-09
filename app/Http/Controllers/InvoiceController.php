@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Invoice;
+use App\Models\DeletionLog;
 use App\Models\StoreInformation;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -78,9 +79,20 @@ class InvoiceController extends Controller
         ]);
     }
 
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
         $invoice = Invoice::findOrFail($id);
+        $validated = $request->validate(['reason' => ['required', 'string', 'min:3', 'max:2000']]);
+        DeletionLog::create([
+            'user_id' => $request->user()->id,
+            'user_name' => $request->user()->name,
+            'user_email' => $request->user()->email,
+            'action' => 'delete_invoice',
+            'entity_type' => 'invoice',
+            'entity_id' => $invoice->id,
+            'reason' => $validated['reason'],
+            'entity_snapshot' => $invoice->load(['customer', 'storeInformation'])->toArray(),
+        ]);
         $invoice->delete();
 
         return response()->json([

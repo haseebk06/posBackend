@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Invoice;
 use App\Models\PartyLedger;
+use App\Models\DeletionLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -89,14 +90,49 @@ class PartyLedgerController extends Controller
         ]);
     }
 
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
         $ledger = PartyLedger::findOrFail($id);
+        $validated = $request->validate(['reason' => ['required', 'string', 'min:3', 'max:2000']]);
+        $this->logDeletion($request, 'delete_party_ledger_row', $ledger, $validated['reason']);
         $ledger->delete();
 
         return response()->json([
             'status' => true,
             'message' => 'Party ledger deleted successfully',
+        ]);
+    }
+
+    public function destroyComplete(Request $request)
+    {
+        $validated = $request->validate([
+            'customer_id' => ['required', 'exists:customers,id'],
+            'reason' => ['required', 'string', 'min:3', 'max:2000'],
+        ]);
+        $ledgers = PartyLedger::where('customer_id', $validated['customer_id'])->get();
+
+        foreach ($ledgers as $ledger) {
+            $this->logDeletion($request, 'delete_complete_party_ledger', $ledger, $validated['reason']);
+            $ledger->delete();
+        }
+
+        return response()->json([
+            'status' => true,
+            'message' => $ledgers->count() . ' party ledger row(s) deleted successfully',
+        ]);
+    }
+
+    private function logDeletion(Request $request, string $action, PartyLedger $ledger, string $reason): void
+    {
+        DeletionLog::create([
+            'user_id' => $request->user()->id,
+            'user_name' => $request->user()->name,
+            'user_email' => $request->user()->email,
+            'action' => $action,
+            'entity_type' => 'party_ledger',
+            'entity_id' => $ledger->id,
+            'reason' => $reason,
+            'entity_snapshot' => $ledger->load(['customer', 'poFromInvoice', 'poToInvoice'])->toArray(),
         ]);
     }
 

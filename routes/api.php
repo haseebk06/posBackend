@@ -14,6 +14,7 @@ use App\Http\Controllers\ServerController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\PartyLedgerController;
+use App\Http\Controllers\DeletionLogController;
 
 
 //user
@@ -164,7 +165,10 @@ Route::prefix('/party-ledger')->group(function () {
     Route::get('/get/{id}', [PartyLedgerController::class, 'show']);
     Route::put('/update/{id}', [PartyLedgerController::class, 'update'])->middleware('auth:sanctum');
     Route::delete('/delete/{id}', [PartyLedgerController::class, 'destroy'])->middleware('auth:sanctum');
+    Route::delete('/delete-complete', [PartyLedgerController::class, 'destroyComplete'])->middleware('auth:sanctum');
 });
+
+Route::get('/deletion-logs', [DeletionLogController::class, 'index'])->middleware('auth:sanctum');
 
 Route::prefix('/print')->group(function () {
     Route::post('/barcode', [BarcodePrintController::class, 'printBarcode']);
