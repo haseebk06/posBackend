@@ -139,7 +139,7 @@ class InvoiceController extends Controller
             'chq_number' => ['nullable', 'string', 'max:255'],
             'cheque_received_date' => ['nullable', 'date'],
             'received' => ['nullable', 'numeric', 'min:0'],
-            'invoice_status' => ['nullable', 'in:SBR Paid,SRB Pending,SBR declined'],
+            'invoice_status' => ['nullable', 'in:SRB Paid,SRB Pending,SRB declined'],
         ];
     }
 
