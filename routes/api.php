@@ -167,7 +167,6 @@ Route::prefix('/party-ledger')->group(function () {
     Route::put('/update/{id}', [PartyLedgerController::class, 'update'])->middleware('auth:sanctum');
     Route::patch('/payment/{id}', [PartyLedgerController::class, 'updatePayment'])->middleware('auth:sanctum');
     Route::delete('/delete/{id}', [PartyLedgerController::class, 'destroy'])->middleware('auth:sanctum');
-    Route::delete('/delete-complete', [PartyLedgerController::class, 'destroyComplete'])->middleware('auth:sanctum');
 });
 
 Route::get('/deletion-logs', [DeletionLogController::class, 'index'])->middleware('auth:sanctum');

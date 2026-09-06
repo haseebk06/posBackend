@@ -129,25 +129,6 @@ class PartyLedgerController extends Controller
         ]);
     }
 
-    public function destroyComplete(Request $request)
-    {
-        $validated = $request->validate([
-            'customer_id' => ['required', 'exists:customers,id'],
-            'reason' => ['required', 'string', 'min:3', 'max:2000'],
-        ]);
-        $ledgers = PartyLedger::where('customer_id', $validated['customer_id'])->get();
-
-        foreach ($ledgers as $ledger) {
-            $this->logDeletion($request, 'delete_complete_party_ledger', $ledger, $validated['reason']);
-            $ledger->delete();
-        }
-
-        return response()->json([
-            'status' => true,
-            'message' => $ledgers->count() . ' party ledger row(s) deleted successfully',
-        ]);
-    }
-
     private function logDeletion(Request $request, string $action, PartyLedger $ledger, string $reason): void
     {
         DeletionLog::create([
