@@ -29,8 +29,7 @@ class TruckTyreController extends Controller {
                 'tyre_quantity' => 'nullable|integer|min:0',
                 'tyre_amount' => 'nullable|numeric|min:0',
                 'tyre_details' => 'nullable|array',
-                'tyre_details.*.detail' => 'string|max:255',
-                'tyre_details.*.cost' => 'numeric|min:0',
+                'tyre_details.*' => 'string|max:255',
             ]);
 
             $tyre = TruckTyre::create($validated);
@@ -57,8 +56,7 @@ class TruckTyreController extends Controller {
                 'tyre_quantity' => 'nullable|integer|min:0',
                 'tyre_amount' => 'nullable|numeric|min:0',
                 'tyre_details' => 'nullable|array',
-                'tyre_details.*.detail' => 'string|max:255',
-                'tyre_details.*.cost' => 'numeric|min:0',
+                'tyre_details.*' => 'string|max:255',
             ]);
 
             $tyre->update($validated);

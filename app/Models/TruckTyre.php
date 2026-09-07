@@ -17,7 +17,6 @@ class TruckTyre extends Model {
         'tyre_quantity',
         'tyre_amount',
         'tyre_details',
-        'tyre_details_cost',
         'total_amount',
     ];
 
@@ -26,7 +25,6 @@ class TruckTyre extends Model {
         'tyre_quantity' => 'integer',
         'tyre_amount' => 'decimal:2',
         'tyre_details' => 'array',
-        'tyre_details_cost' => 'decimal:2',
         'total_amount' => 'decimal:2',
     ];
 
@@ -34,19 +32,11 @@ class TruckTyre extends Model {
         parent::boot();
 
         static::saving(function ($model) {
-            // Calculate tyre amount (ensure it's numeric)
+            // Ensure tyre amount is numeric
             $model->tyre_amount = $model->tyre_amount ?? 0;
 
-            // Calculate tyre details cost
-            $tyreDetails = $model->tyre_details ?? [];
-            $model->tyre_details_cost = array_reduce(
-                $tyreDetails,
-                fn($sum, $detail) => bcadd($sum, $detail['cost'] ?? 0, 2),
-                0
-            );
-
-            // Calculate total amount
-            $model->total_amount = bcadd($model->tyre_amount, $model->tyre_details_cost, 2);
+            // Total amount is just the tyre amount
+            $model->total_amount = $model->tyre_amount;
         });
     }
 }

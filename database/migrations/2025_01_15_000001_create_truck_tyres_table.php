@@ -14,14 +14,13 @@ return new class extends Migration {
             // Tyre information
             $table->string('tyre_type')->nullable(); // e.g., Radial, Tubeless, etc.
             $table->integer('tyre_quantity')->default(0); // Number of tyres
-            $table->decimal('tyre_amount', 15, 2)->default(0); // Cost per tyre or total
+            $table->decimal('tyre_amount', 15, 2)->default(0); // Total tyre cost
 
-            // Tyre details (JSON array: [{detail, cost}])
-            $table->json('tyre_details')->nullable();
-            $table->decimal('tyre_details_cost', 15, 2)->default(0); // Sum of details costs
+            // Tyre details (JSON array of strings)
+            $table->json('tyre_details')->nullable(); // e.g., ["New tyres", "Balancing", "Alignment"]
 
             // Total calculations
-            $table->decimal('total_amount', 15, 2)->default(0); // tyre_amount + tyre_details_cost
+            $table->decimal('total_amount', 15, 2)->default(0); // Same as tyre_amount
 
             $table->timestamps();
             $table->softDeletes();
