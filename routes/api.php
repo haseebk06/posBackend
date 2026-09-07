@@ -16,6 +16,7 @@ use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\PartyLedgerController;
 use App\Http\Controllers\DeletionLogController;
 use App\Http\Controllers\TruckExpenseController;
+use App\Http\Controllers\TruckTyreController;
 
 
 //user
@@ -179,6 +180,15 @@ Route::prefix('/truck-expense')->group(function () {
     Route::delete('/delete/{id}', [TruckExpenseController::class, 'delete'])->middleware('auth:sanctum');
     Route::post('/restore/{id}', [TruckExpenseController::class, 'restore'])->middleware('auth:sanctum');
     Route::get('/logs', [TruckExpenseController::class, 'deletionLogs'])->middleware('auth:sanctum');
+});
+
+Route::prefix('/truck-tyre')->group(function () {
+    Route::get('/get', [TruckTyreController::class, 'get']);
+    Route::post('/add', [TruckTyreController::class, 'add'])->middleware('auth:sanctum');
+    Route::put('/update/{id}', [TruckTyreController::class, 'update'])->middleware('auth:sanctum');
+    Route::delete('/delete/{id}', [TruckTyreController::class, 'delete'])->middleware('auth:sanctum');
+    Route::post('/restore/{id}', [TruckTyreController::class, 'restore'])->middleware('auth:sanctum');
+    Route::get('/logs', [TruckTyreController::class, 'deletionLogs'])->middleware('auth:sanctum');
 });
 
 Route::prefix('/print')->group(function () {
