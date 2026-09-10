@@ -2,6 +2,8 @@
 
 namespace Database\Seeders;
 
+use App\Models\Counter;
+use App\Models\Table;
 use App\Models\User;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -15,7 +17,7 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
 
-        User::factory()->create([
+        $admin = User::factory()->create([
             'name' => 'Admin User',
             'email' => 'admin@example.com',
             'phoneNumber' => '03000000001',
@@ -28,5 +30,21 @@ class DatabaseSeeder extends Seeder
             'phoneNumber' => '03000000002',
             'role' => 'cashier',
         ]);
+
+        Counter::create([
+            'name' => 'Counter#01',
+            'branch' => 'Main Branch',
+            'status' => 'closed',
+            'system_id' => 'PC-01',
+            'user_id' => $admin->id,
+        ]);
+
+        foreach (range(1, 10) as $i) {
+            Table::create([
+                'name' => 'Table ' . $i,
+                'seats' => 4,
+                'status' => true,
+            ]);
+        }
     }
 }
