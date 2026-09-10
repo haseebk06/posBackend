@@ -29,6 +29,7 @@ class OrderController extends Controller
         $order = new Order();
         $order->user_id = $request->user()->id;
         $order->shift_id = $request["shift_id"] ?? null;
+        $order->counter_session_id = $request["counter_session_id"] ?? null;
         $order->total = $request["total"] ?? null;
         $order->tax = $request["tax"] ?? null;
         $order->discount = $request["discount"] ?? null;

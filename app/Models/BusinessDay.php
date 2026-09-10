@@ -5,25 +5,27 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Counter extends Model
+class BusinessDay extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'name',
-        'branch',
+        'business_date',
         'status',
-        'system_id',
-        'start_time',
-        'end_time',
-        'user_id',
         'opened_by',
         'closed_by',
+        'start_time',
+        'end_time',
     ];
 
-    public function user()
+    public function openedByUser()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'opened_by');
+    }
+
+    public function closedByUser()
+    {
+        return $this->belongsTo(User::class, 'closed_by');
     }
 
     public function shifts()
@@ -34,10 +36,5 @@ class Counter extends Model
     public function counterSessions()
     {
         return $this->hasMany(CounterSession::class);
-    }
-
-    public function assignedCashiers()
-    {
-        return $this->belongsToMany(User::class, 'counter_cashier_assignments', 'counter_id', 'user_id');
     }
 }

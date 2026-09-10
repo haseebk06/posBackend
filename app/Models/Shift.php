@@ -12,6 +12,10 @@ class Shift extends Model
     protected $fillable = [
         'user_id',
         'counter_id',
+        'business_day_id',
+        'shift_type_id',
+        'opened_by',
+        'closed_by',
         'start_time',
         'end_time',
         'name',
@@ -40,5 +44,30 @@ class Shift extends Model
     public function counter()
     {
         return $this->belongsTo(Counter::class);
+    }
+
+    public function businessDay()
+    {
+        return $this->belongsTo(BusinessDay::class);
+    }
+
+    public function shiftType()
+    {
+        return $this->belongsTo(ShiftType::class);
+    }
+
+    public function openedByUser()
+    {
+        return $this->belongsTo(User::class, 'opened_by');
+    }
+
+    public function closedByUser()
+    {
+        return $this->belongsTo(User::class, 'closed_by');
+    }
+
+    public function counterSessions()
+    {
+        return $this->hasMany(CounterSession::class);
     }
 }

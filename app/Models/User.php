@@ -83,4 +83,14 @@ class User extends Authenticatable
     {
         return $this->hasMany(Counter::class);
     }
+
+    public function counterSessions()
+    {
+        return $this->hasMany(CounterSession::class);
+    }
+
+    public function assignedCounters()
+    {
+        return $this->belongsToMany(Counter::class, 'counter_cashier_assignments', 'user_id', 'counter_id');
+    }
 }

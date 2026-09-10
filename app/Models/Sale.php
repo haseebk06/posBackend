@@ -24,6 +24,7 @@ class Sale extends Model
         'return_reason',
         'user_id',
         'shift_id',
+        'counter_session_id',
         'is_return',
         'status',
     ];
@@ -41,6 +42,11 @@ class Sale extends Model
     public function shift()
     {
         return $this->belongsTo(Shift::class);
+    }
+
+    public function counterSession()
+    {
+        return $this->belongsTo(CounterSession::class);
     }
 
     public function returnedSales()

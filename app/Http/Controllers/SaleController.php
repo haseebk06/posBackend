@@ -503,6 +503,7 @@ class SaleController extends Controller
         $sale->gst = $request["gst"];
         $sale->service_charges = $request["service_charges"];
         $sale->shift_id = $request["shift_id"];
+        $sale->counter_session_id = $request["counter_session_id"] ?? null;
         $sale->discount = $request["discount"];
         $sale->finalTotal = $request["finalTotal"];
         $sale->paymentMethod = $request["paymentMethod"];

@@ -17,6 +17,9 @@ use App\Http\Controllers\PartyLedgerController;
 use App\Http\Controllers\DeletionLogController;
 use App\Http\Controllers\TruckExpenseController;
 use App\Http\Controllers\TruckTyreController;
+use App\Http\Controllers\BusinessDayController;
+use App\Http\Controllers\ShiftTypeController;
+use App\Http\Controllers\CounterAssignmentController;
 
 
 //user
@@ -95,6 +98,33 @@ Route::prefix('/counter')->group(function () {
     Route::put('/close/{id}', [ShiftController::class, 'closeCounter'])->middleware('auth:sanctum');
     Route::get('/reports', [ShiftController::class, 'dailyReports']);
     Route::get('/reports/generate', [ShiftController::class, 'generateReportManually']);
+    Route::get('/{id}/cashiers', [CounterAssignmentController::class, 'cashiers'])->middleware('auth:sanctum');
+    Route::post('/{id}/assign-cashiers', [CounterAssignmentController::class, 'assign'])->middleware('auth:sanctum');
+});
+
+// business day / shift / counter-session workflow (cashier "Start Day" screen)
+Route::prefix('/business-day')->middleware('auth:sanctum')->group(function () {
+    Route::get('/current-state', [BusinessDayController::class, 'currentState']);
+    Route::get('/list', [BusinessDayController::class, 'list']);
+    Route::post('/start', [BusinessDayController::class, 'startDay']);
+    Route::post('/{id}/close', [BusinessDayController::class, 'closeDay']);
+});
+
+Route::prefix('/business-day-shift')->middleware('auth:sanctum')->group(function () {
+    Route::post('/start', [BusinessDayController::class, 'startShift']);
+    Route::post('/{id}/close', [BusinessDayController::class, 'closeShift']);
+});
+
+Route::prefix('/counter-session')->middleware('auth:sanctum')->group(function () {
+    Route::get('/assigned', [BusinessDayController::class, 'assignedCounters']);
+    Route::post('/start', [BusinessDayController::class, 'startCounterSession']);
+    Route::post('/{id}/close', [BusinessDayController::class, 'closeCounterSession']);
+});
+
+Route::prefix('/shift-type')->group(function () {
+    Route::get('/get', [ShiftTypeController::class, 'index']);
+    Route::post('/add', [ShiftTypeController::class, 'store'])->middleware('auth:sanctum');
+    Route::delete('/{id}', [ShiftTypeController::class, 'destroy'])->middleware('auth:sanctum');
 });
 
 Route::prefix('/menu')->group(function () {
