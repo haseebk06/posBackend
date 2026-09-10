@@ -3,6 +3,8 @@
 namespace Database\Seeders;
 
 use App\Models\Counter;
+use App\Models\Server;
+use App\Models\ShiftType;
 use App\Models\Table;
 use App\Models\User;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
@@ -46,5 +48,10 @@ class DatabaseSeeder extends Seeder
                 'status' => true,
             ]);
         }
+
+        Server::create(['name' => 'Waiter One']);
+        Server::create(['name' => 'Waiter Two']);
+
+        ShiftType::create(['name' => 'Morning']);
     }
 }
