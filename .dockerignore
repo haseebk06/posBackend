@@ -1,0 +1,12 @@
+/node_modules
+/vendor
+/.git
+/storage/*.key
+/database/database.sqlite
+.env
+.env.*
+!.env.example
+Homestead.json
+Homestead.yaml
+npm-debug.log
+yarn-error.log
