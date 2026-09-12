@@ -14,6 +14,9 @@ ENV WEBROOT=/var/www/html/public
 ENV PHP_ERRORS_STDERR=1
 ENV RUN_SCRIPTS=1
 ENV REAL_IP_HEADER=1
+# Without this, nginx's default try_files hard-404s any path that
+# isn't a literal file (i.e. every Laravel route except "/")
+ENV PHP_CATCHALL=1
 
 # Laravel config
 ENV APP_ENV=production
