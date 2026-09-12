@@ -270,7 +270,8 @@ class BusinessDayController extends Controller
     {
         abort_unless($request->user()->role === 'cashier', 403);
 
-        $session = CounterSession::where('id', $id)
+        $session = CounterSession::with(['counter', 'businessDay', 'openedByUser'])
+            ->where('id', $id)
             ->where('user_id', $request->user()->id)
             ->where('status', 'open')
             ->first();
@@ -279,12 +280,39 @@ class BusinessDayController extends Controller
             return response()->json(['message' => 'No open counter session found.'], 404);
         }
 
-        $totalSales = Sale::where('counter_session_id', $session->id)->sum('finalTotal');
+        $sales = Sale::where('counter_session_id', $session->id)
+            ->where('is_return', false)
+            ->get();
+
+        $gross = (float) $sales->sum('total');
+        $gst = (float) $sales->sum('gst');
+        $discount = (float) $sales->sum('discount');
+        $serviceCharges = (float) $sales->sum('service_charges');
+        $netSale = (float) $sales->sum('finalTotal');
+
+        $amountBreakdown = $sales->groupBy(fn ($sale) => $sale->paymentMethod ?: 'unspecified')
+            ->map(fn ($group, $method) => [
+                'method' => $method,
+                'orders' => $group->count(),
+                'total' => round((float) $group->sum('finalTotal'), 2),
+            ])->values();
+
+        $orderTypeBreakdown = $sales->groupBy(fn ($sale) => $sale->mode ?: 'Unspecified')
+            ->map(fn ($group, $mode) => [
+                'mode' => $mode,
+                'orders' => $group->count(),
+                'total' => round((float) $group->sum('finalTotal'), 2),
+            ])->values();
+
+        $cashSales = (float) $sales->where('paymentMethod', 'cash')->sum('finalTotal');
+        $openingCash = (float) ($session->opening_cash ?? 0);
+        $expectedCash = $openingCash + $cashSales;
+        $closingCash = (float) ($request->closing_cash ?? 0);
 
         $session->update([
             'status' => 'closed',
-            'closing_cash' => $request->closing_cash ?? 0,
-            'total_sales' => $totalSales,
+            'closing_cash' => $closingCash,
+            'total_sales' => $netSale,
             'closed_by' => $request->user()->id,
             'end_time' => now(),
         ]);
@@ -296,8 +324,27 @@ class BusinessDayController extends Controller
         ]);
 
         return response()->json([
-            'data' => $session,
-            'total_sales' => $totalSales,
+            'data' => $session->fresh(['counter', 'businessDay', 'openedByUser', 'closedByUser']),
+            'total_sales' => $netSale,
+            'summary' => [
+                'financial' => [
+                    'gross' => round($gross, 2),
+                    'gst' => round($gst, 2),
+                    'discount' => round($discount, 2),
+                    'service_charges' => round($serviceCharges, 2),
+                    'net_sale' => round($netSale, 2),
+                    'total_orders' => $sales->count(),
+                ],
+                'amount_breakdown' => $amountBreakdown,
+                'order_type_breakdown' => $orderTypeBreakdown,
+                'reconciliation' => [
+                    'opening_cash' => round($openingCash, 2),
+                    'cash_sales' => round($cashSales, 2),
+                    'expected_cash' => round($expectedCash, 2),
+                    'closing_cash' => round($closingCash, 2),
+                    'short_excess' => round($closingCash - $expectedCash, 2),
+                ],
+            ],
         ]);
     }
 }
