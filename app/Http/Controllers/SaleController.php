@@ -479,13 +479,16 @@ class SaleController extends Controller
     public function addSales(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'total' => 'required|max:255',
-            'tax' => 'required|max:255',
-            'discount' => 'required|max:255',
-            'finalTotal' => 'required|max:255',
+            'total' => 'required|numeric',
+            'tax' => 'nullable|numeric',
+            'gst' => 'nullable|numeric',
+            'service_charges' => 'nullable|numeric',
+            'discount' => 'nullable|numeric',
+            'finalTotal' => 'required|numeric',
             'paymentMethod' => 'required|max:255',
-            'amountReceived' => 'required|max:255',
-            'changeAmount' => 'required|max:255',
+            'amountReceived' => 'required|numeric',
+            'changeAmount' => 'nullable|numeric',
+            'shift_id' => 'required|exists:shifts,id',
         ]);
 
         if ($validator->fails()) {
