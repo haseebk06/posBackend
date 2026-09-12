@@ -199,7 +199,7 @@ class PartyLedgerController extends Controller
     private function nextSerialNumber(int $customerId): string
     {
         $maxSerial = PartyLedger::where('customer_id', $customerId)
-            ->selectRaw('MAX(CAST(serial_number AS UNSIGNED)) as max_serial')
+            ->selectRaw('MAX(CAST(serial_number AS BIGINT)) as max_serial')
             ->value('max_serial');
 
         return (string) (((int) $maxSerial) + 1);

@@ -186,9 +186,13 @@ class MenuController extends Controller
     //  Get all tables
     public function index()
     {
-        $tables = Table::with('server')
-    ->orderByRaw("CAST(SUBSTRING_INDEX(name, '#', -1) AS UNSIGNED) ASC")
-    ->get();
+        $tables = Table::with('server')->get()
+            ->sortBy(function ($table) {
+                preg_match('/\d+/', $table->name, $matches);
+                return isset($matches[0]) ? (int) $matches[0] : 0;
+            })
+            ->values();
+
         return response()->json([
             'status' => true,
             'data'   => $tables
