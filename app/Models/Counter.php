@@ -12,6 +12,7 @@ class Counter extends Model
     protected $fillable = [
         'name',
         'branch',
+        'branch_id',
         'status',
         'system_id',
         'start_time',
@@ -24,6 +25,11 @@ class Counter extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function branchModel()
+    {
+        return $this->belongsTo(Branch::class, 'branch_id');
     }
 
     public function shifts()

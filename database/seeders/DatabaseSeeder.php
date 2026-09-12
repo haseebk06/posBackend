@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Branch;
 use App\Models\Counter;
 use App\Models\MenuCategory;
 use App\Models\MenuItem;
@@ -35,9 +36,12 @@ class DatabaseSeeder extends Seeder
             'role' => 'cashier',
         ]);
 
+        $branch = Branch::create(['name' => 'Main Branch']);
+
         Counter::create([
             'name' => 'Counter#01',
             'branch' => 'Main Branch',
+            'branch_id' => $branch->id,
             'status' => 'closed',
             'system_id' => 'PC-01',
             'user_id' => $admin->id,

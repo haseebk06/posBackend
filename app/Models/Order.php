@@ -26,11 +26,22 @@ class Order extends Model
         'sale_id',
         'is_return',
         'status',
+        'branch_id',
+        'order_number',
+    ];
+
+    protected $hidden = [
+        'order_number',
     ];
 
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function branch()
+    {
+        return $this->belongsTo(Branch::class);
     }
 
     public function orderItems()

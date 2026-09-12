@@ -2,9 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Branch;
+use App\Models\CounterSession;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\Shift;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
 class OrderController extends Controller
@@ -37,6 +41,14 @@ class OrderController extends Controller
         $order->finalTotal = $request["finalTotal"] ?? null;
         $order->amountReceived = $request["amountReceived"] ?? null;
         $order->changeAmount = $request["changeAmount"] ?? null;
+
+        $branchId = $this->resolveBranchId($order->counter_session_id, $order->shift_id);
+
+        if ($branchId) {
+            $order->branch_id = $branchId;
+            $order->order_number = $this->generateOrderNumber($branchId);
+        }
+
         $order->save();
 
         return response()->json([
@@ -44,6 +56,50 @@ class OrderController extends Controller
             'message' => 'Order added successfully',
             'data' => $order,
         ], 200);
+    }
+
+    /**
+     * Resolve the branch an order belongs to, via its counter session or shift's counter.
+     */
+    private function resolveBranchId(?int $counterSessionId, ?int $shiftId): ?int
+    {
+        if ($counterSessionId) {
+            $branchId = CounterSession::find($counterSessionId)?->counter?->branch_id;
+            if ($branchId) {
+                return $branchId;
+            }
+        }
+
+        if ($shiftId) {
+            $branchId = Shift::find($shiftId)?->counter?->branch_id;
+            if ($branchId) {
+                return $branchId;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Generate the next order number for a branch: YYMMDD-HHmm-{branchId}-{00001}.
+     * The per-branch sequence never resets and is incremented under a row
+     * lock so concurrent orders on the same branch can't collide.
+     */
+    private function generateOrderNumber(int $branchId): string
+    {
+        return DB::transaction(function () use ($branchId) {
+            $branch = Branch::where('id', $branchId)->lockForUpdate()->first();
+
+            if (!$branch) {
+                throw new \RuntimeException("Branch {$branchId} not found for order numbering.");
+            }
+
+            $branch->increment('last_order_sequence');
+
+            $sequence = str_pad((string) $branch->last_order_sequence, 5, '0', STR_PAD_LEFT);
+
+            return now()->format('ymd-Hi') . '-' . $branchId . '-' . $sequence;
+        });
     }
     
    public function getHoldOrders(Request $request)
