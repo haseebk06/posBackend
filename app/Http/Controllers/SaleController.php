@@ -360,35 +360,47 @@ class SaleController extends Controller
             $return->reason = $request->reason;
             $return->save();
     
-            // Save return items and update original sold items
+            // The frontend deliberately only sends {id, quantity} per item --
+            // not trusting client-supplied prices/names for a financial
+            // operation -- so authoritative name/price/etc always come from
+            // the original sold item, matched by id (name alone can collide
+            // across two lines on the same sale).
             $savedItems = [];
             foreach ($request->items as $item) {
+                $soldItem = SoldItems::find($item['id']);
+
+                if (!$soldItem) {
+                    throw new \Exception("Sold item {$item['id']} not found for this sale.");
+                }
+
+                $returnQuantity = $item['quantity'];
+
                 // Create return item record
                 $returnItem = new RetrunItem();
                 $returnItem->return_id = $return->id;
-                $returnItem->name = $item['name'];
-                $returnItem->quantity = $item['quantity'];
-                $returnItem->barcode = $item['barcode'] ?? null;
-                $returnItem->category = $item['category'] ?? null;
-                $returnItem->costPrice = $item['costPrice'];
-                $returnItem->sellingPrice = $item['sellingPrice'];
-                $returnItem->stock = $item['stock'];
-                $returnItem->subtotal = $item['subtotal'];
-                $returnItem->unit = $item['unit'] ?? null;
+                $returnItem->name = $soldItem->name;
+                $returnItem->quantity = $returnQuantity;
+                $returnItem->barcode = $soldItem->barcode;
+                $returnItem->category = $soldItem->category;
+                $returnItem->costPrice = $soldItem->costPrice;
+                $returnItem->sellingPrice = $soldItem->sellingPrice;
+                $returnItem->stock = $soldItem->stock;
+                $returnItem->subtotal = $soldItem->sellingPrice * $returnQuantity;
+                $returnItem->unit = $soldItem->unit;
                 $returnItem->save();
-    
+
                 $savedItems[] = $returnItem;
-    
+
                 // Update the original sold item's is_return status
-                $this->updateSoldItemReturnStatus($request->sale_id, $item['name'], $item['quantity']);
+                $this->updateSoldItemReturnStatus($soldItem, $returnQuantity);
             }
-    
+
             // Update the original sale status based on return type
             $originalSale = Sale::find($request->sale_id);
             if ($originalSale) {
                 // Check if this is a full return (all items returned)
-                $isFullReturn = $this->isFullReturn($request->sale_id, $request->items);
-                
+                $isFullReturn = $this->isFullReturn($request->sale_id);
+
                 if ($isFullReturn) {
                     $originalSale->status = 'returned';
                 } else {
@@ -419,30 +431,23 @@ class SaleController extends Controller
     }
     
     // Helper method to update sold item's return status
-    private function updateSoldItemReturnStatus($saleId, $itemName, $returnedQuantity)
+    private function updateSoldItemReturnStatus(SoldItems $soldItem, $returnedQuantity)
     {
-        // Find the original sold item
-        $soldItem = SoldItems::where('sale_id', $saleId)
-                            ->where('name', $itemName)
-                            ->first();
-    
-        if ($soldItem) {
-            if ($returnedQuantity >= $soldItem->quantity) {
-                // Mark as fully returned
-                $soldItem->is_return = 1;
-                $soldItem->return_reason = 'Fully returned';
-            } else {
-                // For partial returns, reduce the quantity
-                $soldItem->quantity -= $returnedQuantity;
-                $soldItem->subtotal = $soldItem->sellingPrice * $soldItem->quantity;
-                $soldItem->is_return = 0; // Not fully returned
-                $soldItem->return_reason = 'Partially returned: ' . $returnedQuantity . ' items returned';
-            }
-            $soldItem->save();
+        if ($returnedQuantity >= $soldItem->quantity) {
+            // Mark as fully returned
+            $soldItem->is_return = 1;
+            $soldItem->return_reason = 'Fully returned';
+        } else {
+            // For partial returns, reduce the quantity
+            $soldItem->quantity -= $returnedQuantity;
+            $soldItem->subtotal = $soldItem->sellingPrice * $soldItem->quantity;
+            $soldItem->is_return = 0; // Not fully returned
+            $soldItem->return_reason = 'Partially returned: ' . $returnedQuantity . ' items returned';
         }
+        $soldItem->save();
     }
 
-    private function isFullReturn($saleId, $returnItems)
+    private function isFullReturn($saleId)
     {
         // Get all non-returned items from the original sale
         $originalItems = SoldItems::where('sale_id', $saleId)

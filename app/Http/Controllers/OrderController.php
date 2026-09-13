@@ -258,28 +258,35 @@ class OrderController extends Controller
             ], 422);
         }
 
-        DB::transaction(function () use ($order, $request) {
-            DeletionLog::create([
-                'user_id' => $request->user()->id,
-                'user_name' => $request->user()->name,
-                'user_email' => $request->user()->email,
-                'action' => 'cancel',
-                'entity_type' => 'Order',
-                'entity_id' => $order->id,
-                'reason' => $request->reason,
-                'entity_snapshot' => $order->toArray(),
-                'created_at' => now(),
-            ]);
+        try {
+            DB::transaction(function () use ($order, $request) {
+                DeletionLog::create([
+                    'user_id' => $request->user()->id,
+                    'user_name' => $request->user()->name,
+                    'user_email' => $request->user()->email,
+                    'action' => 'cancel',
+                    'entity_type' => 'Order',
+                    'entity_id' => $order->id,
+                    'reason' => $request->reason,
+                    'entity_snapshot' => $order->toArray(),
+                    'created_at' => now(),
+                ]);
 
-            $order->update(['status' => 'cancelled']);
+                $order->update(['status' => 'cancelled']);
 
-            Table::where('order_id', $order->id)->update([
-                'status' => true,
-                'payment_status' => 'completed',
-                'order_id' => null,
-                'server_id' => null,
-            ]);
-        });
+                Table::where('order_id', $order->id)->update([
+                    'status' => true,
+                    'payment_status' => 'completed',
+                    'order_id' => null,
+                    'server_id' => null,
+                ]);
+            });
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Failed to cancel order: ' . $e->getMessage(),
+            ], 500);
+        }
 
         return response()->json([
             'status' => true,
