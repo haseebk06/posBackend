@@ -22,11 +22,18 @@ class Retrun extends Model
         'reason',
         'user_id',
         'shift_id',
+        'branch_id',
+        'return_number',
     ];
 
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function branch()
+    {
+        return $this->belongsTo(Branch::class);
     }
 
     public function retrunItems()
@@ -36,7 +43,7 @@ class Retrun extends Model
     
     public function sales()
     {
-        return $this->belongsTo(Sale::class);
+        return $this->belongsTo(Sale::class, 'sale_id');
     }
 
     public function shift()

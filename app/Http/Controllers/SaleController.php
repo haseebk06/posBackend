@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Branch;
 use App\Models\CounterSession;
 use App\Models\HoldCart;
 use App\Models\Sale;
@@ -341,6 +342,28 @@ class SaleController extends Controller
             'data' => $returns,
         ], 200);
     }
+
+    /**
+     * Generate the next return number for a branch: RTN-YYMMDD-HHmm-{branchId}-{00001}.
+     * Separate per-branch sequence from order numbers, same lock-based pattern
+     * as OrderController::generateOrderNumber so concurrent returns can't collide.
+     */
+    private function generateReturnNumber(int $branchId): string
+    {
+        return DB::transaction(function () use ($branchId) {
+            $branch = Branch::where('id', $branchId)->lockForUpdate()->first();
+
+            if (!$branch) {
+                throw new \RuntimeException("Branch {$branchId} not found for return numbering.");
+            }
+
+            $branch->increment('last_return_sequence');
+
+            $sequence = str_pad((string) $branch->last_return_sequence, 5, '0', STR_PAD_LEFT);
+
+            return 'RTN-' . now()->format('ymd-Hi') . '-' . $branchId . '-' . $sequence;
+        });
+    }
     
     public function addReturns(Request $request)
     {
@@ -361,6 +384,13 @@ class SaleController extends Controller
             $return->amountReceived = $request->amountReceived;
             $return->changeAmount = $request->changeAmount;
             $return->reason = $request->reason;
+
+            $branchId = Shift::find($request->shift_id)?->counter?->branch_id;
+            if ($branchId) {
+                $return->branch_id = $branchId;
+                $return->return_number = $this->generateReturnNumber($branchId);
+            }
+
             $return->save();
     
             // The frontend deliberately only sends {id, quantity} per item --
