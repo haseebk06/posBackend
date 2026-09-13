@@ -18,9 +18,12 @@ class SaleController extends Controller
 {
     public function getSales()
     {
-        $sales = Sale::with(['soldItems' => function ($query) {
-            $query->where('is_return', false);
-        }])->orderBy('created_at', 'desc')
+        $sales = Sale::with([
+            'soldItems' => function ($query) {
+                $query->where('is_return', false);
+            },
+            'order:id,order_number',
+        ])->orderBy('created_at', 'desc')
             ->get();
 
         return response()->json([
@@ -328,7 +331,7 @@ class SaleController extends Controller
 
     public function getReturns()
     {
-        $returns = Retrun::with('retrunItems')
+        $returns = Retrun::with(['retrunItems', 'sales.order:id,order_number'])
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -514,6 +517,7 @@ class SaleController extends Controller
 
         $sale = new Sale();
         $sale->user_id = $request->user()->id;
+        $sale->order_id = $request["order_id"] ?? null;
         $sale->total = $request["total"];
         $sale->tax = $request["tax"];
         $sale->gst = $request["gst"];
@@ -531,7 +535,7 @@ class SaleController extends Controller
         return response()->json([
             'status' => true,
             'message' => 'Stock added successfully',
-            'data' => $sale,
+            'data' => $sale->load('order:id,order_number'),
         ], 200);
     }
 

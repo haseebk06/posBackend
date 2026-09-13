@@ -30,10 +30,6 @@ class Order extends Model
         'order_number',
     ];
 
-    protected $hidden = [
-        'order_number',
-    ];
-
     public function user()
     {
         return $this->belongsTo(User::class);
