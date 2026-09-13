@@ -344,6 +344,30 @@ class SaleController extends Controller
     }
 
     /**
+     * Resolve a branch from a counter session or shift, same precedence as
+     * OrderController::resolveBranchId (counter session first, since
+     * Shift::counter_id is null under the newer CounterSession workflow).
+     */
+    private function resolveBranchId(?int $counterSessionId, ?int $shiftId): ?int
+    {
+        if ($counterSessionId) {
+            $branchId = CounterSession::find($counterSessionId)?->counter?->branch_id;
+            if ($branchId) {
+                return $branchId;
+            }
+        }
+
+        if ($shiftId) {
+            $branchId = Shift::find($shiftId)?->counter?->branch_id;
+            if ($branchId) {
+                return $branchId;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Generate the next return number for a branch: RTN-YYMMDD-HHmm-{branchId}-{00001}.
      * Separate per-branch sequence from order numbers, same lock-based pattern
      * as OrderController::generateOrderNumber so concurrent returns can't collide.
@@ -385,7 +409,12 @@ class SaleController extends Controller
             $return->changeAmount = $request->changeAmount;
             $return->reason = $request->reason;
 
-            $branchId = Shift::find($request->shift_id)?->counter?->branch_id;
+            // Shift::counter_id is always null under the newer CounterSession
+            // workflow, so resolve via the original sale's counter_session_id
+            // first (same precedence as OrderController::resolveBranchId) and
+            // only fall back to the shift's counter for the legacy workflow.
+            $originalSaleForBranch = Sale::find($request->sale_id);
+            $branchId = $this->resolveBranchId($originalSaleForBranch?->counter_session_id, $request->shift_id);
             if ($branchId) {
                 $return->branch_id = $branchId;
                 $return->return_number = $this->generateReturnNumber($branchId);
@@ -429,7 +458,7 @@ class SaleController extends Controller
             }
 
             // Update the original sale status based on return type
-            $originalSale = Sale::find($request->sale_id);
+            $originalSale = $originalSaleForBranch;
             if ($originalSale) {
                 // Check if this is a full return (all items returned)
                 $isFullReturn = $this->isFullReturn($request->sale_id);
