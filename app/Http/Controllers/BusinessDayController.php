@@ -6,9 +6,11 @@ use App\Models\BusinessDay;
 use App\Models\Counter;
 use App\Models\CounterCashierAssignment;
 use App\Models\CounterSession;
+use App\Models\Order;
 use App\Models\Sale;
 use App\Models\Shift;
 use App\Models\ShiftType;
+use App\Models\Table;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -336,6 +338,21 @@ class BusinessDayController extends Controller
 
         if (! $session) {
             return response()->json(['message' => 'No open counter session found.'], 404);
+        }
+
+        // A pending order means an occupied table hasn't been paid/cleared
+        // yet -- closing the counter out from under it would strand the
+        // table in a state nothing can recover.
+        $sessionOrderIds = Order::where('counter_session_id', $session->id)->pluck('id');
+        $pendingTables = Table::where('payment_status', 'pending')
+            ->whereIn('order_id', $sessionOrderIds)
+            ->pluck('name');
+
+        if ($pendingTables->isNotEmpty()) {
+            return response()->json([
+                'message' => 'Please clear or cancel pending orders before closing this counter: '
+                    . $pendingTables->implode(', '),
+            ], 422);
         }
 
         $closingCash = (float) ($request->closing_cash ?? 0);

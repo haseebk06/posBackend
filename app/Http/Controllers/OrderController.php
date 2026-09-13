@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Branch;
 use App\Models\CounterSession;
+use App\Models\DeletionLog;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Shift;
+use App\Models\Table;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -214,6 +216,77 @@ class OrderController extends Controller
         ], 200);
     }
     
+    /**
+     * Cancel a pending order: mark it cancelled, free up its table, and log
+     * an audit trail entry (same pattern as truck-expense/tyre deletions)
+     * since this voids items that were already rung in.
+     */
+    public function cancelOrder(Request $request, $orderId)
+    {
+        $validator = Validator::make($request->all(), [
+            'reason' => 'required|string|max:255',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Validation error',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $order = Order::with('orderItems')->find($orderId);
+
+        if (!$order) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Order not found',
+            ], 404);
+        }
+
+        if ($order->status === 'cancelled') {
+            return response()->json([
+                'status' => false,
+                'message' => 'This order is already cancelled',
+            ], 422);
+        }
+
+        if ($order->status === 'completed') {
+            return response()->json([
+                'status' => false,
+                'message' => 'A completed order cannot be cancelled',
+            ], 422);
+        }
+
+        DB::transaction(function () use ($order, $request) {
+            DeletionLog::create([
+                'user_id' => $request->user()->id,
+                'user_name' => $request->user()->name,
+                'user_email' => $request->user()->email,
+                'action' => 'cancel',
+                'entity_type' => 'Order',
+                'entity_id' => $order->id,
+                'reason' => $request->reason,
+                'entity_snapshot' => $order->toArray(),
+                'created_at' => now(),
+            ]);
+
+            $order->update(['status' => 'cancelled']);
+
+            Table::where('order_id', $order->id)->update([
+                'status' => true,
+                'payment_status' => 'completed',
+                'order_id' => null,
+                'server_id' => null,
+            ]);
+        });
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Order cancelled successfully',
+        ], 200);
+    }
+
     public function addOrderAddons(Request $request, $orderId)
     {
 

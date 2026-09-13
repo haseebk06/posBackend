@@ -69,6 +69,7 @@ Route::prefix('/order')->group(function () {
     Route::post('/add', [OrderController::class, 'addOrders'])->middleware('auth:sanctum');
     Route::post('/add/orderItems', [OrderController::class, 'addOrderItems'])->middleware('auth:sanctum');
     Route::post('/addOns/orderItems/{orderId}', [OrderController::class, 'addOrderAddons'])->middleware('auth:sanctum');
+    Route::post('/{orderId}/cancel', [OrderController::class, 'cancelOrder'])->middleware('auth:sanctum');
 });
 
 //store Information
