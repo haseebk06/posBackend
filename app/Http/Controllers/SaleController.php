@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CounterSession;
 use App\Models\HoldCart;
 use App\Models\Sale;
 use App\Models\Shift;
@@ -109,13 +110,17 @@ class SaleController extends Controller
 
     public function getPreviousShiftSales($counterId, $userId)
     {
-        $previousShift = Shift::where('status', 'closed')
+        // Counters are linked via CounterSession under the Business Day
+        // workflow, not Shift.counter_id (which is no longer set), so the
+        // "previous shift for this counter" has to be resolved through the
+        // most recently closed session on this counter today.
+        $previousSession = CounterSession::where('status', 'closed')
             ->where('counter_id', $counterId)
             ->whereDate('start_time', today())
             ->orderBy('end_time', 'desc')
             ->first();
-    
-        if (!$previousShift) {
+
+        if (!$previousSession) {
             return response()->json([
                 'status' => false,
                 'message' => 'No previous shift found for this counter today',
@@ -127,32 +132,32 @@ class SaleController extends Controller
                 'total_service_charges' => 0,
             ], 200);
         }
-    
-        $sales = Sale::where('shift_id', $previousShift->id)
+
+        $sales = Sale::where('counter_session_id', $previousSession->id)
             ->whereDate('created_at', today())
             ->orderBy('created_at', 'desc')
             ->get();
-    
-        $totalSales = Sale::where('shift_id', $previousShift->id)
+
+        $totalSales = Sale::where('counter_session_id', $previousSession->id)
             ->whereDate('created_at', today())
             ->sum('finalTotal');
-    
-        $totalGrossSales = Sale::where('shift_id', $previousShift->id)
+
+        $totalGrossSales = Sale::where('counter_session_id', $previousSession->id)
             ->whereDate('created_at', today())
             ->sum('total');
-            
-        $totalGst = Sale::where('shift_id', $previousShift->id)
+
+        $totalGst = Sale::where('counter_session_id', $previousSession->id)
             ->whereDate('created_at', today())
             ->sum('gst');
-    
-        $totalServiceCharges = Sale::where('shift_id', $previousShift->id)
+
+        $totalServiceCharges = Sale::where('counter_session_id', $previousSession->id)
             ->whereDate('created_at', today())
             ->sum('service_charges');
-    
+
         return response()->json([
             'status' => true,
             'message' => 'Previous shift sales fetched successfully',
-            'shift_id' => $previousShift->id,
+            'shift_id' => $previousSession->shift_id,
             'data' => $sales,
             'total_sales' => $totalSales,
             'gross_sales' => $totalGrossSales,
@@ -163,13 +168,13 @@ class SaleController extends Controller
     
     public function getPreviousShiftRetruns($counterId, $userId)
     {
-        $previousShift = Shift::where('status', 'closed')
+        $previousSession = CounterSession::where('status', 'closed')
             ->where('counter_id', $counterId)
             ->whereDate('start_time', today())
             ->orderBy('end_time', 'desc')
             ->first();
 
-        if (!$previousShift) {
+        if (!$previousSession) {
             return response()->json([
                 'status' => false,
                 'message' => 'No previous shift found for this counter today',
@@ -179,31 +184,34 @@ class SaleController extends Controller
             ], 200);
         }
 
-        $returns = Retrun::where('shift_id', $previousShift->id)
+        // Retrun rows don't carry a counter_session_id, only shift_id.
+        $previousShiftId = $previousSession->shift_id;
+
+        $returns = Retrun::where('shift_id', $previousShiftId)
             ->whereDate('created_at', today())
             ->orderBy('created_at', 'desc')
             ->get();
 
-        $totalRetruns = Retrun::where('shift_id', $previousShift->id)
+        $totalRetruns = Retrun::where('shift_id', $previousShiftId)
             ->whereDate('created_at', today())
             ->sum('finalTotal');
 
-        $totalGrossRetruns = Retrun::where('shift_id', $previousShift->id)
+        $totalGrossRetruns = Retrun::where('shift_id', $previousShiftId)
             ->whereDate('created_at', today())
             ->sum('total');
-    
-        $totalGst = Retrun::where('shift_id', $previousShift->id)
+
+        $totalGst = Retrun::where('shift_id', $previousShiftId)
             ->whereDate('created_at', today())
             ->sum('gst');
-    
-        $totalServiceCharges = Retrun::where('shift_id', $previousShift->id)
+
+        $totalServiceCharges = Retrun::where('shift_id', $previousShiftId)
             ->whereDate('created_at', today())
             ->sum('service_charges');
-    
+
         return response()->json([
             'status' => true,
             'message' => 'Previous shift retrun fetched successfully',
-            'shift_id' => $previousShift->id,
+            'shift_id' => $previousShiftId,
             'data' => $returns,
             'total_retruns' => $totalRetruns,
             'gross_retruns' => $totalGrossRetruns,
@@ -252,21 +260,21 @@ class SaleController extends Controller
 
     public function getPreviousShiftItemsSold($counterId, $userId)
     {
-        $previousShift = Shift::where('status', 'closed')
+        $previousSession = CounterSession::where('status', 'closed')
             ->where('counter_id', $counterId)
             ->whereDate('start_time', today())
             ->orderBy('end_time', 'desc')
             ->first();
-    
-        if (!$previousShift) {
+
+        if (!$previousSession) {
             return response()->json([
                 'status' => false,
                 'message' => 'No previous shift found for this counter today',
                 'data' => [],
             ], 200);
         }
-    
-        $sales = Sale::where('shift_id', $previousShift->id)
+
+        $sales = Sale::where('counter_session_id', $previousSession->id)
             ->whereDate('created_at', today())
             ->with(['soldItems' => function($query) {
                 $query->where('is_return', false);
