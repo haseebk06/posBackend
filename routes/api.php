@@ -119,6 +119,7 @@ Route::prefix('/counter-session')->middleware('auth:sanctum')->group(function ()
     Route::get('/assigned', [BusinessDayController::class, 'assignedCounters']);
     Route::post('/start', [BusinessDayController::class, 'startCounterSession']);
     Route::post('/{id}/close', [BusinessDayController::class, 'closeCounterSession']);
+    Route::get('/{id}/summary', [BusinessDayController::class, 'sessionSummary']);
 });
 
 Route::prefix('/shift-type')->group(function () {

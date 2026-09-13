@@ -266,20 +266,13 @@ class BusinessDayController extends Controller
         ], 201);
     }
 
-    public function closeCounterSession(Request $request, $id)
+    /**
+     * Compute the financial summary for a counter session's sales. Shared by
+     * closeCounterSession (at the moment of closing) and sessionSummary (for
+     * re-viewing an already-closed session's report later).
+     */
+    private function buildSessionSummary(CounterSession $session, float $closingCash): array
     {
-        abort_unless($request->user()->role === 'cashier', 403);
-
-        $session = CounterSession::with(['counter', 'businessDay', 'openedByUser'])
-            ->where('id', $id)
-            ->where('user_id', $request->user()->id)
-            ->where('status', 'open')
-            ->first();
-
-        if (! $session) {
-            return response()->json(['message' => 'No open counter session found.'], 404);
-        }
-
         $sales = Sale::where('counter_session_id', $session->id)
             ->where('is_return', false)
             ->get();
@@ -307,25 +300,9 @@ class BusinessDayController extends Controller
         $cashSales = (float) $sales->where('paymentMethod', 'cash')->sum('finalTotal');
         $openingCash = (float) ($session->opening_cash ?? 0);
         $expectedCash = $openingCash + $cashSales;
-        $closingCash = (float) ($request->closing_cash ?? 0);
 
-        $session->update([
-            'status' => 'closed',
-            'closing_cash' => $closingCash,
-            'total_sales' => $netSale,
-            'closed_by' => $request->user()->id,
-            'end_time' => now(),
-        ]);
-
-        Counter::where('id', $session->counter_id)->update([
-            'status' => 'closed',
-            'end_time' => now(),
-            'closed_by' => $request->user()->name,
-        ]);
-
-        return response()->json([
-            'data' => $session->fresh(['counter', 'businessDay', 'openedByUser', 'closedByUser']),
-            'total_sales' => $netSale,
+        return [
+            'total_sales' => round($netSale, 2),
             'summary' => [
                 'financial' => [
                     'gross' => round($gross, 2),
@@ -345,6 +322,67 @@ class BusinessDayController extends Controller
                     'short_excess' => round($closingCash - $expectedCash, 2),
                 ],
             ],
+        ];
+    }
+
+    public function closeCounterSession(Request $request, $id)
+    {
+        abort_unless($request->user()->role === 'cashier', 403);
+
+        $session = CounterSession::where('id', $id)
+            ->where('user_id', $request->user()->id)
+            ->where('status', 'open')
+            ->first();
+
+        if (! $session) {
+            return response()->json(['message' => 'No open counter session found.'], 404);
+        }
+
+        $closingCash = (float) ($request->closing_cash ?? 0);
+        $result = $this->buildSessionSummary($session, $closingCash);
+
+        $session->update([
+            'status' => 'closed',
+            'closing_cash' => $closingCash,
+            'total_sales' => $result['total_sales'],
+            'closed_by' => $request->user()->id,
+            'end_time' => now(),
+        ]);
+
+        Counter::where('id', $session->counter_id)->update([
+            'status' => 'closed',
+            'end_time' => now(),
+            'closed_by' => $request->user()->name,
+        ]);
+
+        return response()->json([
+            'data' => $session->fresh(['counter', 'businessDay', 'openedByUser', 'closedByUser']),
+            'total_sales' => $result['total_sales'],
+            'summary' => $result['summary'],
+        ]);
+    }
+
+    /**
+     * Re-view the financial summary for any counter session (typically an
+     * already-closed one) without re-running the close mutation.
+     */
+    public function sessionSummary(Request $request, $id)
+    {
+        abort_unless($request->user()->role === 'cashier', 403);
+
+        $session = CounterSession::with(['counter', 'businessDay', 'openedByUser', 'closedByUser'])
+            ->find($id);
+
+        if (! $session) {
+            return response()->json(['message' => 'Counter session not found.'], 404);
+        }
+
+        $result = $this->buildSessionSummary($session, (float) ($session->closing_cash ?? 0));
+
+        return response()->json([
+            'data' => $session,
+            'total_sales' => $result['total_sales'],
+            'summary' => $result['summary'],
         ]);
     }
 }
