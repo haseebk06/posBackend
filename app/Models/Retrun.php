@@ -24,6 +24,7 @@ class Retrun extends Model
         'shift_id',
         'branch_id',
         'return_number',
+        'counter_session_id',
     ];
 
     public function user()
@@ -34,6 +35,11 @@ class Retrun extends Model
     public function branch()
     {
         return $this->belongsTo(Branch::class);
+    }
+
+    public function counterSession()
+    {
+        return $this->belongsTo(CounterSession::class);
     }
 
     public function retrunItems()

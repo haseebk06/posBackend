@@ -63,4 +63,14 @@ class CounterSession extends Model
     {
         return $this->hasMany(Order::class);
     }
+
+    public function returns()
+    {
+        return $this->hasMany(Retrun::class);
+    }
+
+    public function pettyCashTransactions()
+    {
+        return $this->hasMany(PettyCashTransaction::class);
+    }
 }

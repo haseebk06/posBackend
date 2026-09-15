@@ -20,6 +20,7 @@ use App\Http\Controllers\TruckTyreController;
 use App\Http\Controllers\BusinessDayController;
 use App\Http\Controllers\ShiftTypeController;
 use App\Http\Controllers\CounterAssignmentController;
+use App\Http\Controllers\PettyCashController;
 
 
 //user
@@ -121,6 +122,11 @@ Route::prefix('/counter-session')->middleware('auth:sanctum')->group(function ()
     Route::post('/start', [BusinessDayController::class, 'startCounterSession']);
     Route::post('/{id}/close', [BusinessDayController::class, 'closeCounterSession']);
     Route::get('/{id}/summary', [BusinessDayController::class, 'sessionSummary']);
+});
+
+Route::prefix('/petty-cash')->middleware('auth:sanctum')->group(function () {
+    Route::get('/{counterSessionId}/summary', [PettyCashController::class, 'summary']);
+    Route::post('/{counterSessionId}/transactions', [PettyCashController::class, 'store']);
 });
 
 Route::prefix('/shift-type')->group(function () {

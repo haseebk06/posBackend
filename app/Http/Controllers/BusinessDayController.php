@@ -7,6 +7,8 @@ use App\Models\Counter;
 use App\Models\CounterCashierAssignment;
 use App\Models\CounterSession;
 use App\Models\Order;
+use App\Models\PettyCashTransaction;
+use App\Models\Retrun;
 use App\Models\Sale;
 use App\Models\Shift;
 use App\Models\ShiftType;
@@ -315,8 +317,27 @@ class BusinessDayController extends Controller
             ])->values();
 
         $cashSales = (float) $sales->where('paymentMethod', 'cash')->sum('finalTotal');
+
+        // Cash that left the till outside of a sale: refunds paid back in
+        // cash, and manual petty cash withdrawals -- both need to reduce
+        // expected cash the same way a manual deposit increases it, or this
+        // reconciliation drifts from the live Petty Cash ledger the moment
+        // either is used (see PettyCashController::currentBalance, which
+        // this mirrors).
+        $cashRefunds = (float) Retrun::where('counter_session_id', $session->id)
+            ->where('paymentMethod', 'cash')
+            ->sum('finalTotal');
+
+        $pettyCashDeposits = (float) PettyCashTransaction::where('counter_session_id', $session->id)
+            ->where('type', 'deposit')
+            ->sum('amount');
+
+        $pettyCashWithdrawals = (float) PettyCashTransaction::where('counter_session_id', $session->id)
+            ->where('type', 'withdrawal')
+            ->sum('amount');
+
         $openingCash = (float) ($session->opening_cash ?? 0);
-        $expectedCash = $openingCash + $cashSales;
+        $expectedCash = $openingCash + $cashSales - $cashRefunds + $pettyCashDeposits - $pettyCashWithdrawals;
 
         return [
             'total_sales' => round($netSale, 2),
@@ -334,6 +355,9 @@ class BusinessDayController extends Controller
                 'reconciliation' => [
                     'opening_cash' => round($openingCash, 2),
                     'cash_sales' => round($cashSales, 2),
+                    'cash_refunds' => round($cashRefunds, 2),
+                    'petty_cash_deposits' => round($pettyCashDeposits, 2),
+                    'petty_cash_withdrawals' => round($pettyCashWithdrawals, 2),
                     'expected_cash' => round($expectedCash, 2),
                     'closing_cash' => round($closingCash, 2),
                     'short_excess' => round($closingCash - $expectedCash, 2),

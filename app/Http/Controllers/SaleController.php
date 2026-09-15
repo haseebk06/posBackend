@@ -414,6 +414,7 @@ class SaleController extends Controller
             // first (same precedence as OrderController::resolveBranchId) and
             // only fall back to the shift's counter for the legacy workflow.
             $originalSaleForBranch = Sale::find($request->sale_id);
+            $return->counter_session_id = $originalSaleForBranch?->counter_session_id;
             $branchId = $this->resolveBranchId($originalSaleForBranch?->counter_session_id, $request->shift_id);
             if ($branchId) {
                 $return->branch_id = $branchId;
