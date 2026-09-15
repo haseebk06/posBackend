@@ -45,14 +45,7 @@ class BusinessDayController extends Controller
         $assignedCounters = Counter::whereHas('assignedCashiers', function ($q) use ($request) {
             $q->where('users.id', $request->user()->id);
         })->get()->map(function ($counter) use ($businessDay) {
-            $session = $businessDay
-                ? CounterSession::where('counter_id', $counter->id)
-                    ->where('business_day_id', $businessDay->id)
-                    ->orderBy('created_at', 'desc')
-                    ->first()
-                : null;
-
-            $counter->current_session = $session;
+            $counter->current_session = $this->currentSessionForCounter($counter->id, $businessDay);
             return $counter;
         });
 
@@ -63,6 +56,35 @@ class BusinessDayController extends Controller
             'counterSessions' => $counterSessions,
             'assignedCounters' => $assignedCounters,
         ]);
+    }
+
+    /**
+     * The "already open" check in startCounterSession() is intentionally
+     * global (a counter can't have two open sessions at once even if a
+     * previous business day was never closed), so this lookup mirrors that:
+     * an open session on the counter -- from any day -- always takes
+     * priority so a stray leftover-open session is visible and closeable
+     * here, instead of only blocking startCounterSession() invisibly.
+     * Falls back to today's latest session for historical badge display
+     * when nothing is currently open.
+     */
+    private function currentSessionForCounter(int $counterId, ?BusinessDay $businessDay): ?CounterSession
+    {
+        $openSession = CounterSession::where('counter_id', $counterId)
+            ->where('status', 'open')
+            ->orderBy('created_at', 'desc')
+            ->first();
+
+        if ($openSession) {
+            return $openSession;
+        }
+
+        return $businessDay
+            ? CounterSession::where('counter_id', $counterId)
+                ->where('business_day_id', $businessDay->id)
+                ->orderBy('created_at', 'desc')
+                ->first()
+            : null;
     }
 
     public function list()
@@ -199,14 +221,7 @@ class BusinessDayController extends Controller
         $counters = Counter::whereHas('assignedCashiers', function ($q) use ($request) {
             $q->where('users.id', $request->user()->id);
         })->get()->map(function ($counter) use ($businessDay) {
-            $session = $businessDay
-                ? CounterSession::where('counter_id', $counter->id)
-                    ->where('business_day_id', $businessDay->id)
-                    ->orderBy('created_at', 'desc')
-                    ->first()
-                : null;
-
-            $counter->current_session = $session;
+            $counter->current_session = $this->currentSessionForCounter($counter->id, $businessDay);
             return $counter;
         });
 
