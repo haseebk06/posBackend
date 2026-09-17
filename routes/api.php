@@ -21,6 +21,7 @@ use App\Http\Controllers\BusinessDayController;
 use App\Http\Controllers\ShiftTypeController;
 use App\Http\Controllers\CounterAssignmentController;
 use App\Http\Controllers\PettyCashController;
+use App\Http\Controllers\ExpenseController;
 
 
 //user
@@ -127,6 +128,26 @@ Route::prefix('/counter-session')->middleware('auth:sanctum')->group(function ()
 Route::prefix('/petty-cash')->middleware('auth:sanctum')->group(function () {
     Route::get('/{counterSessionId}/summary', [PettyCashController::class, 'summary']);
     Route::post('/{counterSessionId}/transactions', [PettyCashController::class, 'store']);
+});
+
+// Expense management & accounts (admin only -- enforced in the controller)
+Route::prefix('/expenses')->middleware('auth:sanctum')->group(function () {
+    Route::get('/summary', [ExpenseController::class, 'summary']);
+    Route::get('/transactions', [ExpenseController::class, 'transactions']);
+    Route::get('/payables', [ExpenseController::class, 'payables']);
+    Route::get('/receivables', [ExpenseController::class, 'receivables']);
+    Route::post('/', [ExpenseController::class, 'store']);
+    Route::put('/{id}', [ExpenseController::class, 'update']);
+    Route::delete('/{id}', [ExpenseController::class, 'destroy']);
+    Route::get('/{id}/payments', [ExpenseController::class, 'entryPayments']);
+    Route::post('/{id}/payments', [ExpenseController::class, 'recordPayment']);
+
+    Route::get('/parties/list', [ExpenseController::class, 'parties']);
+    Route::post('/parties', [ExpenseController::class, 'storeParty']);
+    Route::delete('/parties/{id}', [ExpenseController::class, 'destroyParty']);
+
+    Route::get('/categories/list', [ExpenseController::class, 'categories']);
+    Route::post('/categories', [ExpenseController::class, 'storeCategory']);
 });
 
 Route::prefix('/shift-type')->group(function () {
