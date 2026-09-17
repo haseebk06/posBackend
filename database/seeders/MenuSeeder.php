@@ -99,10 +99,10 @@ class MenuSeeder extends Seeder
                 'description' => 'Offers: 5 Rolls ke saath 1 Roll Free. 2 Tikkay ke saath 500ml Cold Drink Free.',
                 'items' => [
                     ['Deal 1', 700, '1 Chicken + 2 Shami Kebab + Malai Boti'],
-                    ['Deal 2', 1000, '1 Chicken Kebab + 1 Chicken item + 2 Shami Kebab + 300ml Cold Drink'],
-                    ['Deal 3', 1200, '1 Chicken Tikka + 2 Seekh Kebab + 500ml Cold Drink'],
-                    ['Deal 4', 1500, '1 Reshmi Kebab + 1 Chicken Kebab + 1 Chicken item + 2 Shami Kebab + 300ml Cold Drink'],
-                    ['Deal 5', 2000, '3 Cold Drinks + 4 Parathas + 2 Naan + assorted BBQ items'],
+                    ['Deal 2', 1000, 'Pulao Half KG + 1 Seekh Kebab + 1 Tikka Chest + 2 Shami Kebab + Cold Drink 300ml + Raita'],
+                    ['Deal 3', 1200, 'Chicken Karahi + 1 Tikka Chest + 2 Seekh Kebab + 500ml Cold Drink + 2 Parathay'],
+                    ['Deal 4', 1500, 'Pulao 3 Paao + 1 Reshmi Kebab + 1 Seekh Kebab + 1 Tikka Chest + 2 Shami Kebab + Cold Drink 300ml + Raita'],
+                    ['Deal 5', 2000, '1 Tikka Chest + 1 Achari Tikka Chest + 1 Malai Boti + 1 Green Boti + 1 Reshmi Kebab + 1 Seekh Kebab + Beef Boti + 3 Cold Drinks + 4 Parathay + 2 Raita'],
                 ],
             ],
         ];
