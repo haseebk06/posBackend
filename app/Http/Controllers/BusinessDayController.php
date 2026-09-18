@@ -424,7 +424,9 @@ class BusinessDayController extends Controller
      */
     public function sessionSummary(Request $request, $id)
     {
-        abort_unless($request->user()->role === 'cashier', 403);
+        // Admins review past days' closing reports from the Reports screen;
+        // cashiers re-view their own via Start Day.
+        abort_unless(in_array($request->user()->role, ['admin', 'cashier']), 403);
 
         $session = CounterSession::with(['counter', 'businessDay', 'openedByUser', 'closedByUser'])
             ->find($id);
@@ -439,6 +441,39 @@ class BusinessDayController extends Controller
             'data' => $session,
             'total_sales' => $result['total_sales'],
             'summary' => $result['summary'],
+        ]);
+    }
+
+    /**
+     * All shifts and counter sessions for a specific (typically past)
+     * business day, so an admin can browse history and drill into any
+     * session's closing report via sessionSummary() above. Mirrors
+     * currentState() but for an arbitrary day instead of only today.
+     */
+    public function dayDetail(Request $request, $id)
+    {
+        abort_unless(in_array($request->user()->role, ['admin', 'cashier']), 403);
+
+        $businessDay = BusinessDay::with(['openedByUser', 'closedByUser'])->find($id);
+
+        if (! $businessDay) {
+            return response()->json(['message' => 'Business day not found.'], 404);
+        }
+
+        $shifts = Shift::with(['shiftType', 'openedByUser', 'closedByUser'])
+            ->where('business_day_id', $businessDay->id)
+            ->orderBy('created_at')
+            ->get();
+
+        $counterSessions = CounterSession::with(['counter', 'user', 'shift.shiftType', 'openedByUser', 'closedByUser'])
+            ->where('business_day_id', $businessDay->id)
+            ->orderBy('created_at')
+            ->get();
+
+        return response()->json([
+            'businessDay' => $businessDay,
+            'shifts' => $shifts,
+            'counterSessions' => $counterSessions,
         ]);
     }
 }

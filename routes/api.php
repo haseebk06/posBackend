@@ -111,6 +111,7 @@ Route::prefix('/business-day')->middleware('auth:sanctum')->group(function () {
     Route::get('/list', [BusinessDayController::class, 'list']);
     Route::post('/start', [BusinessDayController::class, 'startDay']);
     Route::post('/{id}/close', [BusinessDayController::class, 'closeDay']);
+    Route::get('/{id}/detail', [BusinessDayController::class, 'dayDetail']);
 });
 
 Route::prefix('/business-day-shift')->middleware('auth:sanctum')->group(function () {
