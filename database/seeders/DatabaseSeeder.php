@@ -21,7 +21,7 @@ class DatabaseSeeder extends Seeder
         $admin = User::create([
             'name' => 'Admin',
             'email' => 'admin@gmail.com',
-            'phoneNumber' => '03000000001',=
+            'phoneNumber' => '03000000001',
             'role' => 'admin',
         ]);
 
