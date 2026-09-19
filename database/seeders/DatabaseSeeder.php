@@ -22,6 +22,7 @@ class DatabaseSeeder extends Seeder
             'name' => 'Admin',
             'email' => 'admin@gmail.com',
             'phoneNumber' => '03000000001',
+            'password' => '12345678',
             'role' => 'admin',
         ]);
 
@@ -29,6 +30,7 @@ class DatabaseSeeder extends Seeder
             'name' => 'Cashier',
             'email' => 'cashier@gmail.com',
             'phoneNumber' => '03000000002',
+            'password' => '12345678',
             'role' => 'cashier',
         ]);
 
