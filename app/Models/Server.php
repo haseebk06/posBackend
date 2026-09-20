@@ -9,10 +9,16 @@ class Server extends Model
      protected $fillable = [
         'name',
         'phone',
+        'type',
     ];
-    
+
     public function table()
     {
         return $this->hasMany(Table::class);
+    }
+
+    public function orders()
+    {
+        return $this->hasMany(Order::class);
     }
 }

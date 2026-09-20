@@ -28,11 +28,17 @@ class Order extends Model
         'status',
         'branch_id',
         'order_number',
+        'server_id',
     ];
 
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function server()
+    {
+        return $this->belongsTo(Server::class);
     }
 
     public function branch()

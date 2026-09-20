@@ -202,7 +202,9 @@ Route::prefix('/tables')->group(function () {
 Route::prefix('/server')->group(function () {
     Route::post('/add', [ServerController::class, 'store'])->middleware('auth:sanctum');
     Route::get('/get', [ServerController::class, 'index']);
+    Route::put('/{id}', [ServerController::class, 'update'])->middleware('auth:sanctum');
     Route::delete('/{id}', [ServerController::class, 'destroy'])->middleware('auth:sanctum');
+    Route::get('/performance', [ServerController::class, 'performance'])->middleware('auth:sanctum');
 });
 
 Route::prefix('/customer')->group(function () {
