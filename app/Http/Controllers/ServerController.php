@@ -25,7 +25,7 @@ class ServerController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'phone' => 'nullable|string|max:255',
-            'type' => 'nullable|in:Head Waiter,Senior,Junior',
+            'type' => 'nullable|in:Head Waiter,Senior,Junior,Bar Wala',
         ]);
 
         $server = Server::create($validated);
@@ -43,7 +43,7 @@ class ServerController extends Controller
         $validated = $request->validate([
             'name' => 'sometimes|required|string|max:255',
             'phone' => 'nullable|string|max:255',
-            'type' => 'nullable|in:Head Waiter,Senior,Junior',
+            'type' => 'nullable|in:Head Waiter,Senior,Junior,Bar Wala',
         ]);
 
         $server->update($validated);
